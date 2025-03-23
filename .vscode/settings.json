@@ -1,5 +1,12 @@
 {
     "cSpell.words": [
+        "groundplane",
+        "markrgb",
+        "mjcf",
+        "skybox",
+        "texrepeat",
+        "texuniform",
+        "timestep",
         "urdf"
     ]
 }
