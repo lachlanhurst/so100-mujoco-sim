@@ -1,0 +1,26 @@
+[project]
+authors = [{name = "Lachlan Hurst", email = "lachlan.hurst@gmail.com"}]
+dependencies = []
+name = "so100-mujoco-sim"
+requires-python = ">= 3.11"
+version = "0.1.0"
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["osx-64"]
+
+[tool.pixi.pypi-dependencies]
+so100_mujoco_sim = { path = ".", editable = true }
+mujoco = ">=3.2.7,<4"
+PySide6 = ">=6.8.2,<6.9"
+
+[tool.pixi.tasks]
+download = { cmd = "python src/so100_mujoco_sim/download.py" }
+simulate = { cmd = "python src/so100_mujoco_sim/simulate.py" }
+
+[tool.pixi.dependencies]
+requests = ">=2.32.3,<3"
