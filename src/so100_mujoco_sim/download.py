@@ -35,7 +35,7 @@ def download():
             raise FileNotFoundError(f"Path {extracted_folder} not found in the extracted zip.")
 
         # Create the destination folder
-        destination_folder = os.path.join(pathlib.Path(__file__).parent, "urdf/so100/")
+        destination_folder = os.path.join(pathlib.Path(__file__).parent, "urdf/so100/SO_5DOF_ARM100_8j_URDF.SLDASM")
         os.makedirs(destination_folder, exist_ok=True)
 
         # The stuff we need to the destination folder in this repo
