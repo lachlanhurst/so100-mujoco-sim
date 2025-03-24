@@ -1,12 +1,18 @@
 {
     "cSpell.words": [
+        "fixedcamid",
+        "FONTSCALE",
         "groundplane",
         "markrgb",
+        "maxgeom",
         "mjcf",
+        "pixi",
+        "Renderable",
         "skybox",
         "texrepeat",
         "texuniform",
         "timestep",
-        "urdf"
+        "urdf",
+        "visualisation"
     ]
 }
