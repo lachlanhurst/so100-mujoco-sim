@@ -2,7 +2,7 @@
   <compiler angle="radian"/>
   <!-- <option timestep="0.000025"/> -->
 
-  <include file="so100.xml"/>
+  <include file="so_arm100.xml"/>
 
   <statistic center="0 0 0.1" extent="0.8"/>
 

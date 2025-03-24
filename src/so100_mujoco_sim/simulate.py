@@ -162,7 +162,7 @@ class Window(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
 
-        self.model = mujoco.MjModel.from_xml_path(str(pathlib.Path(__file__).parent.joinpath('urdf/scene.xml')))
+        self.model = mujoco.MjModel.from_xml_path(str(pathlib.Path(__file__).parent.joinpath('xml/sim_scene.xml')))
         self.data = mujoco.MjData(self.model)
         self.cam = self.create_free_camera()
         self.opt = mujoco.MjvOption()
