@@ -16,6 +16,7 @@ from PySide6.QtGui import (
 )
 import time
 
+from so100_mujoco_sim.arm_control import joints_from_model, Joint
 
 
 format = QSurfaceFormat()
@@ -157,12 +158,45 @@ class UpdateSimThread(QThread):
         self.yaw = yaw
 
 
+class JointWidget(QWidget):
+
+    def __init__(self, joint: Joint) -> None:
+        super().__init__()
+        self.joint = joint
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+        name_label = QLabel(self.joint.name)
+        self.value_label = QLabel("0.0")
+        self.value_label.setStyleSheet("color: #888")
+        label_layout = QHBoxLayout()
+        label_layout.addWidget(name_label)
+        label_layout.addStretch()
+        label_layout.addWidget(self.value_label)
+
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setMinimum(self.joint.range[0] * 1000)
+        self.slider.setMaximum(self.joint.range[1] * 1000)
+        self.slider.setValue(0)
+        self.slider.valueChanged.connect(self._changed)
+        layout.addLayout(label_layout)
+        layout.addWidget(self.slider)
+        self.setLayout(layout)
+
+        self.setMinimumWidth(190)
+
+    def _changed(self, value: int) -> None:
+        self.value_label.setText("{:.2f}".format(value / 1000.0))
+
+
 class Window(QMainWindow):
 
     def __init__(self) -> None:
         super().__init__()
 
         self.model = mujoco.MjModel.from_xml_path(str(pathlib.Path(__file__).parent.joinpath('xml/sim_scene.xml')))
+        self.joints = joints_from_model(self.model)
+
         self.data = mujoco.MjData(self.model)
         self.cam = self.create_free_camera()
         self.opt = mujoco.MjvOption()
@@ -208,35 +242,12 @@ class Window(QMainWindow):
 
     def create_right_side_control(self):
         layout = QVBoxLayout()
-        # layout.setContentsMargins(0,0,0,0)
-        label_width = 60
 
-        speed_layout = QHBoxLayout()
-        self.speed_slider = QSlider(Qt.Horizontal)
-        # QSliders only support ints, so scale the values we want by 1000
-        # and then remove this scale factor in the valueChanged handler
-        self.speed_slider.setMinimum(-4 * 1000)
-        self.speed_slider.setMaximum(4 * 1000)
-        self.speed_slider.setValue(0)
-        self.speed_slider.valueChanged.connect(self._speed_changed)
-        speed_label = QLabel("Speed")
-        speed_label.setFixedWidth(label_width)
-        speed_layout.addWidget(speed_label)
-        speed_layout.addWidget(self.speed_slider)
+        for joint in self.joints:
+            widget = JointWidget(joint)
+            layout.addWidget(widget)
 
-        yaw_layout = QHBoxLayout()
-        self.yaw_slider = QSlider(Qt.Horizontal)
-        self.yaw_slider.setMinimum(-10 * 1000)
-        self.yaw_slider.setMaximum(10 * 1000)
-        self.yaw_slider.setValue(0)
-        self.yaw_slider.valueChanged.connect(self._yaw_changed)
-        yaw_label = QLabel("Yaw")
-        yaw_label.setFixedWidth(label_width)
-        yaw_layout.addWidget(yaw_label)
-        yaw_layout.addWidget(self.yaw_slider)
-
-        layout.addLayout(speed_layout)
-        layout.addLayout(yaw_layout)
+        layout.addStretch()
 
         w = QGroupBox("Robot Control")
         w.setLayout(layout)
