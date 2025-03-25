@@ -255,7 +255,7 @@ class Window(QMainWindow):
         cam.type = mujoco.mjtCamera.mjCAMERA_FREE
         cam.fixedcamid = -1
         cam.lookat = np.array([ 0.0 , 0.0 , 0.0 ])
-        cam.distance = self.model.stat.extent * 1.0
+        cam.distance = self.model.stat.extent * 1.5
         cam.elevation = -25
         cam.azimuth = 45
         return cam
