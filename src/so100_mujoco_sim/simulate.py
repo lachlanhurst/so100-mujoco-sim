@@ -173,26 +173,27 @@ class Window(QMainWindow):
         self.viewport.setScreenScale(QGuiApplication.instance().primaryScreen().devicePixelRatio())
         self.viewport.updateRuntime.connect(self.show_runtime)
 
-        layout = QVBoxLayout()
-        layout_top = QHBoxLayout()
-        layout_top.setSpacing(8)
-        reset_button = QPushButton("Reset")
-        reset_button.setMinimumWidth(90)
-        reset_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        reset_button.clicked.connect(self.reset_simulation)
-        layout_top.addWidget(reset_button)
-        layout_robot_controls = QVBoxLayout()
-        layout_robot_controls.setContentsMargins(0,0,0,0)
-        layout_robot_controls.addWidget(self.create_top())
-        layout_top.addLayout(layout_robot_controls)
-        layout_top.setContentsMargins(8,0,8,0)
-        layout.addLayout(layout_top)
-        layout.addWidget(QWidget.createWindowContainer(self.viewport))
-        layout.setContentsMargins(0,4,0,0)
-        layout.setStretch(1,1)
+        layout = QHBoxLayout()
+        layout.setSpacing(0)
         w = QWidget()
         w.setLayout(layout)
         self.setCentralWidget(w)
+
+        layout_right_side = QVBoxLayout()
+        layout_right_side.setSpacing(8)
+        reset_button = QPushButton("Reset")
+        reset_button.setMinimumWidth(90)
+        reset_button.clicked.connect(self.reset_simulation)
+        layout_robot_controls = QVBoxLayout()
+        layout_robot_controls.addWidget(self.create_right_side_control())
+        layout_right_side.addLayout(layout_robot_controls)
+        layout_right_side.addWidget(reset_button)
+        layout_right_side.setContentsMargins(8,8,8,8)
+        layout.addWidget(QWidget.createWindowContainer(self.viewport))
+        layout.addLayout(layout_right_side)
+        layout.setContentsMargins(0,0,0,0)
+        layout.setStretch(0,1)
+
         self.resize(800, 600)
 
         self.th = UpdateSimThread(self.model, self.data, self)
@@ -205,7 +206,7 @@ class Window(QMainWindow):
             f"Simulation time: {self.data.time:.0f}s"
         )
 
-    def create_top(self):
+    def create_right_side_control(self):
         layout = QVBoxLayout()
         # layout.setContentsMargins(0,0,0,0)
         label_width = 60
