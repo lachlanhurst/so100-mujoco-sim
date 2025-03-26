@@ -159,16 +159,23 @@ class JointWidget(QWidget):
     def __init__(self, joint: Joint) -> None:
         super().__init__()
         self.joint = joint
+        self.actual_position: float = 0.0
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
         name_label = QLabel(self.joint.name)
+        self.actual_value_label = QLabel("0.0")
+        self.actual_value_label.setStyleSheet("color: #888")
+        self.actual_value_label.setMinimumWidth(40)
         self.value_label = QLabel("0.0")
-        self.value_label.setStyleSheet("color: #888")
+        self.value_label.setStyleSheet("color: #cccccc")
+        self.value_label.setMinimumWidth(40)
         label_layout = QHBoxLayout()
         label_layout.addWidget(name_label)
         label_layout.addStretch()
+        
         label_layout.addWidget(self.value_label)
+        label_layout.addWidget(self.actual_value_label)
 
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setMinimum(self.joint.range[0] * 1000)
@@ -184,6 +191,9 @@ class JointWidget(QWidget):
     def _changed(self, value: int) -> None:
         self.value_label.setText("{:.2f}".format(value / 1000.0))
         self.joint_position_changed.emit(self.joint, value / 1000.0)
+
+    def set_actual_position(self, position: float) -> None:
+        self.actual_value_label.setText("{:.2f}".format(position))
 
 
 class Window(QMainWindow):
@@ -215,6 +225,7 @@ class Window(QMainWindow):
         reset_button.setMinimumWidth(90)
         reset_button.clicked.connect(self.reset_simulation)
         layout_robot_controls = QVBoxLayout()
+        self.joint_widgets: list[JointWidget] = []
         layout_robot_controls.addWidget(self.create_right_side_control())
         layout_right_side.addLayout(layout_robot_controls)
         layout_right_side.addWidget(reset_button)
@@ -237,6 +248,11 @@ class Window(QMainWindow):
             f"Simulation time: {self.data.time:.0f}s"
         )
 
+        for i in range(len(self.joints)):
+            pos = self.th.mujoco_controller.joint_actual_positions[i]
+            jw = self.joint_widgets[i]
+            jw.set_actual_position(pos)
+
     def create_right_side_control(self):
         layout = QVBoxLayout()
 
@@ -244,6 +260,7 @@ class Window(QMainWindow):
             widget = JointWidget(joint)
             widget.joint_position_changed.connect(self._joint_position_changed)
             layout.addWidget(widget)
+            self.joint_widgets.append(widget)
 
         layout.addStretch()
 

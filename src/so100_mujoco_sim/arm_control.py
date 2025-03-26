@@ -53,6 +53,14 @@ class ArmController:
                 self.joint_set_positions[i] = clamped_position
                 break
 
+    def set_joint_actual_position(self, joint_name: str, position: float):
+        for i, joint in enumerate(self.joints):
+            if joint.name == joint_name:
+                # Clamp the position within the joint's range
+                clamped_position = max(joint.range[0], min(position, joint.range[1]))
+                self.joint_actual_positions[i] = clamped_position
+                break
+
     def get_joint_set_position(self, joint_name: str) -> float:
         for i, joint in enumerate(self.joints):
             if joint.name == joint_name:
@@ -93,8 +101,10 @@ class MujocoArmController(ArmController):
         super().update()
 
         for joint in self.joints:
+            # get the actual position of the joint from the mujoco model
+            # and update the arm controller values
             joint_actual_pos = self.data.joint(joint.name).qpos[0]
-            # TODO: update the actual positions of the joints
+            self.set_joint_actual_position(joint.name, joint_actual_pos)
 
     def set_positions(self):
         """
