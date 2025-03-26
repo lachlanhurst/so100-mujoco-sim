@@ -16,7 +16,11 @@ from PySide6.QtGui import (
 )
 import time
 
-from so100_mujoco_sim.arm_control import joints_from_model, Joint
+from so100_mujoco_sim.arm_control import (
+    joints_from_model,
+    Joint,
+    MujocoArmController
+)
 
 
 format = QSurfaceFormat()
@@ -105,13 +109,10 @@ class UpdateSimThread(QThread):
         super().__init__(parent)
         self.model = model
         self.data = data
+        self.mujoco_controller = MujocoArmController(model, data)
         self.running = True
 
-        # self.robot = RobotLqr(model, data)
-
-        # robot control parameters
-        self.speed = 0.0
-        self.yaw = 0.0
+        self.mujoco_controller.reset()
 
         # reset the simulation timer
         self.reset()
@@ -126,19 +127,15 @@ class UpdateSimThread(QThread):
             # without this the sim usually finishes before it's
             # even visible
             if self.data.time < self.real_time / 1_000_000_000:
-                # In the real robot we update the control loop at a 200hz, so do that
-                # here too. It's the filters applied to pitch_dot and linear speed error
-                # that are not time step independent
-                # if (time.monotonic_ns() - self.last_robot_update) / 1_000_000_000 >= (1/200):
-                #     self.last_robot_update = time.monotonic_ns()
-                #     # update robot with user inputs
-                #     self.robot.set_velocity_linear_set_point(self.speed)
-                #     self.robot.set_yaw(self.yaw)
-                #     # update motor speed with LQR controller
-                #     self.robot.update_motor_speed()
+                # Update the control loop at a 100hz
+                if (time.monotonic_ns() - self.last_robot_update) / 1_000_000_000 >= (1/100):
+                    self.last_robot_update = time.monotonic_ns()
+                    # apply the positions set via the UI to the mujoco model
+                    self.mujoco_controller.set_positions()
 
                 # step the simulation
                 mujoco.mj_step(self.model, self.data)
+                self.mujoco_controller.update()
             else:
                 time.sleep(0.00001)
 
@@ -149,16 +146,15 @@ class UpdateSimThread(QThread):
     def reset(self):
         self.real_time_start = time.monotonic_ns()
         self.last_robot_update = time.monotonic_ns()
-        # self.robot.reset()
+        self.mujoco_controller.reset()
 
-    def set_speed(self, speed: float) -> None:
-        self.speed = speed
-
-    def set_yaw(self, yaw: float) -> None:
-        self.yaw = yaw
+    def set_joint_position(self, joint_name: str, position: float) -> None:
+        self.mujoco_controller.set_joint_set_position(joint_name, position)
 
 
 class JointWidget(QWidget):
+
+    joint_position_changed = Signal(Joint, float)
 
     def __init__(self, joint: Joint) -> None:
         super().__init__()
@@ -187,6 +183,7 @@ class JointWidget(QWidget):
 
     def _changed(self, value: int) -> None:
         self.value_label.setText("{:.2f}".format(value / 1000.0))
+        self.joint_position_changed.emit(self.joint, value / 1000.0)
 
 
 class Window(QMainWindow):
@@ -196,7 +193,6 @@ class Window(QMainWindow):
 
         self.model = mujoco.MjModel.from_xml_path(str(pathlib.Path(__file__).parent.joinpath('xml/sim_scene.xml')))
         self.joints = joints_from_model(self.model)
-
         self.data = mujoco.MjData(self.model)
         self.cam = self.create_free_camera()
         self.opt = mujoco.MjvOption()
@@ -230,6 +226,7 @@ class Window(QMainWindow):
 
         self.resize(800, 600)
 
+        # self.th = UpdateSimThread(self.mujoco_controller, self)
         self.th = UpdateSimThread(self.model, self.data, self)
         self.th.start()
 
@@ -245,6 +242,7 @@ class Window(QMainWindow):
 
         for joint in self.joints:
             widget = JointWidget(joint)
+            widget.joint_position_changed.connect(self._joint_position_changed)
             layout.addWidget(widget)
 
         layout.addStretch()
@@ -252,6 +250,9 @@ class Window(QMainWindow):
         w = QGroupBox("Robot Control")
         w.setLayout(layout)
         return w
+
+    def _joint_position_changed(self, joint: Joint, position: float) -> None:
+        self.th.set_joint_position(joint.name, position)
 
     def _speed_changed(self, value: int) -> None:
         speed = value / 1000
