@@ -1,20 +1,18 @@
-from collections import deque
-import time
 import mujoco
 import numpy as np
 import pathlib
-from PySide6.QtWidgets import (
-    QApplication, QWidget, QMainWindow, QPushButton, QSizePolicy,
-    QVBoxLayout, QGroupBox, QHBoxLayout, QSlider, QLabel
-)
-from PySide6.QtCore import QTimer, Qt
-from PySide6.QtOpenGL import QOpenGLWindow
-from PySide6.QtWidgets import QApplication, QWidget
+import time
+
+from collections import deque
 from PySide6.QtCore import QTimer, Qt, Signal, Slot, QThread
 from PySide6.QtGui import (
     QGuiApplication, QSurfaceFormat
 )
-import time
+from PySide6.QtOpenGL import QOpenGLWindow
+from PySide6.QtWidgets import (
+    QApplication, QWidget, QMainWindow, QPushButton, QSizePolicy,
+    QVBoxLayout, QGroupBox, QHBoxLayout, QSlider, QLabel
+)
 
 from so100_mujoco_sim.arm_control import (
     joints_from_model,
@@ -26,10 +24,10 @@ from so100_mujoco_sim.arm_control import (
 format = QSurfaceFormat()
 format.setDepthBufferSize(24)
 format.setStencilBufferSize(8)
-# format.setSamples(4)
-# format.setSwapInterval(1)
-# format.setSwapBehavior(QSurfaceFormat.SwapBehavior.DoubleBuffer)
-# format.setVersion(2,0)
+format.setSamples(4)
+format.setSwapInterval(1)
+format.setSwapBehavior(QSurfaceFormat.SwapBehavior.DoubleBuffer)
+format.setVersion(2,0)
 format.setRenderableType(QSurfaceFormat.RenderableType.OpenGL)
 format.setProfile(QSurfaceFormat.CompatibilityProfile)
 QSurfaceFormat.setDefaultFormat(format)
@@ -153,6 +151,11 @@ class UpdateSimThread(QThread):
 
 
 class JointWidget(QWidget):
+    """
+    Wraps up the joint name and slider in a single widget.
+    Two position values are displayed, the set position and
+    the actual position from the simulation.
+    """
 
     joint_position_changed = Signal(Joint, float)
 
@@ -237,7 +240,6 @@ class Window(QMainWindow):
 
         self.resize(800, 600)
 
-        # self.th = UpdateSimThread(self.mujoco_controller, self)
         self.th = UpdateSimThread(self.model, self.data, self)
         self.th.start()
 
