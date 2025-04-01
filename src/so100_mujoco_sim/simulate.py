@@ -189,8 +189,6 @@ class JointWidget(QWidget):
         layout.addWidget(self.slider)
         self.setLayout(layout)
 
-        self.setMinimumWidth(190)
-
     def _changed(self, value: int) -> None:
         self.value_label.setText("{:.2f}".format(value / 1000.0))
         self.joint_position_changed.emit(self.joint, value / 1000.0)
@@ -200,6 +198,9 @@ class JointWidget(QWidget):
 
 
 class Window(QMainWindow):
+    """
+    Main window for the application
+    """
 
     def __init__(self) -> None:
         super().__init__()
@@ -238,7 +239,7 @@ class Window(QMainWindow):
         layout.setContentsMargins(0,0,0,0)
         layout.setStretch(0,1)
 
-        self.resize(800, 600)
+        self.resize(900, 600)
 
         self.th = UpdateSimThread(self.model, self.data, self)
         self.th.start()
@@ -268,6 +269,7 @@ class Window(QMainWindow):
 
         w = QGroupBox("Robot Control")
         w.setLayout(layout)
+        w.setMinimumWidth(300)
         return w
 
     def _joint_position_changed(self, joint: Joint, position: float) -> None:
