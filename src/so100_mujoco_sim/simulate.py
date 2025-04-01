@@ -11,7 +11,8 @@ from PySide6.QtGui import (
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QPushButton, QSizePolicy,
-    QVBoxLayout, QGroupBox, QHBoxLayout, QSlider, QLabel
+    QVBoxLayout, QGroupBox, QHBoxLayout, QSlider, QLabel, QFileDialog,
+    QLineEdit, QLayout
 )
 
 from so100_mujoco_sim.arm_control import (
@@ -225,14 +226,10 @@ class Window(QMainWindow):
 
         layout_right_side = QVBoxLayout()
         layout_right_side.setSpacing(8)
-        reset_button = QPushButton("Reset")
-        reset_button.setMinimumWidth(90)
-        reset_button.clicked.connect(self.reset_simulation)
         layout_robot_controls = QVBoxLayout()
         self.joint_widgets: list[JointWidget] = []
-        layout_robot_controls.addWidget(self.create_right_side_control())
+        layout_robot_controls.addLayout(self.create_right_side_control())
         layout_right_side.addLayout(layout_robot_controls)
-        layout_right_side.addWidget(reset_button)
         layout_right_side.setContentsMargins(8,8,8,8)
         layout.addWidget(QWidget.createWindowContainer(self.viewport))
         layout.addLayout(layout_right_side)
@@ -256,21 +253,69 @@ class Window(QMainWindow):
             jw = self.joint_widgets[i]
             jw.set_actual_position(pos)
 
-    def create_right_side_control(self):
-        layout = QVBoxLayout()
+    def create_right_side_control(self) -> QLayout:
 
+        # Add the Config group box
+        config_layout = QVBoxLayout()
+        config_layout.setSpacing(8)
+
+        # Calibration file selection
+        calibration_layout_v = QVBoxLayout()
+        calibration_layout_v.setSpacing(0)
+        calibration_layout_v.addWidget(QLabel("LeRobot Calibration File:"))
+        calibration_layout = QHBoxLayout()
+        calibration_layout.setSpacing(4)
+        self.calibration_file_edit = QLineEdit()
+        self.calibration_file_edit.setPlaceholderText("Select file...")
+        calibration_button = QPushButton("Browse")
+        calibration_button.clicked.connect(self._select_calibration_file)
+        calibration_layout.addWidget(self.calibration_file_edit)
+        calibration_layout.addWidget(calibration_button)
+        calibration_layout_v.addLayout(calibration_layout)
+
+        # USB port field
+        usb_port_layout = QVBoxLayout()
+        usb_port_layout.setSpacing(0)
+        usb_port_label = QLabel("USB Port:")
+        usb_port_layout.addWidget(usb_port_label)
+        self.usb_port_edit = QLineEdit()
+        self.usb_port_edit.setPlaceholderText("Enter USB port...")
+        usb_port_layout.addWidget(self.usb_port_edit)
+        config_layout.addLayout(calibration_layout_v)
+        config_layout.addLayout(usb_port_layout)
+
+        config_group = QGroupBox("Config")
+        config_group.setLayout(config_layout)
+        
+        control_layout = QVBoxLayout()
+        # Add the Robot Control group box
         for joint in self.joints:
             widget = JointWidget(joint)
             widget.joint_position_changed.connect(self._joint_position_changed)
-            layout.addWidget(widget)
+            control_layout.addWidget(widget)
             self.joint_widgets.append(widget)
+        control_layout.addStretch()
 
-        layout.addStretch()
+        reset_button = QPushButton("Reset")
+        reset_button.setMinimumWidth(90)
+        reset_button.clicked.connect(self.reset_simulation)
+        control_layout.addWidget(reset_button)
 
-        w = QGroupBox("Robot Control")
-        w.setLayout(layout)
-        w.setMinimumWidth(300)
-        return w
+        robot_control_group = QGroupBox("Robot Control")
+        robot_control_group.setLayout(control_layout)
+        robot_control_group.setMinimumWidth(300)
+
+        layout = QVBoxLayout()
+        layout.setSpacing(24)
+        layout.addWidget(config_group)
+        layout.addWidget(robot_control_group)
+
+        return layout
+
+    def _select_calibration_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Select Calibration File", "", "All Files (*)")
+        if file_path:
+            self.calibration_file_edit.setText(file_path)
 
     def _joint_position_changed(self, joint: Joint, position: float) -> None:
         self.th.set_joint_position(joint.name, position)
