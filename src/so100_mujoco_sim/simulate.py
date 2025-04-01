@@ -4,7 +4,9 @@ import pathlib
 import time
 
 from collections import deque
-from PySide6.QtCore import QTimer, Qt, Signal, Slot, QThread
+from PySide6.QtCore import (
+    QTimer, Qt, Signal, Slot, QThread, QSettings
+)
 from PySide6.QtGui import (
     QGuiApplication, QSurfaceFormat
 )
@@ -206,6 +208,9 @@ class Window(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
 
+        # Initialize QSettings for saving and restoring values
+        self.settings = QSettings("lh", "So100MujocoSim")
+
         self.model = mujoco.MjModel.from_xml_path(str(pathlib.Path(__file__).parent.joinpath('xml/sim_scene.xml')))
         self.joints = joints_from_model(self.model)
         self.data = mujoco.MjData(self.model)
@@ -240,6 +245,9 @@ class Window(QMainWindow):
 
         self.th = UpdateSimThread(self.model, self.data, self)
         self.th.start()
+
+        # Restore saved settings
+        self.restore_settings()
 
     @Slot(float)
     def show_runtime(self, fps: float):
@@ -316,6 +324,20 @@ class Window(QMainWindow):
         file_path, _ = QFileDialog.getOpenFileName(self, "Select Calibration File", "", "All Files (*)")
         if file_path:
             self.calibration_file_edit.setText(file_path)
+
+    def restore_settings(self):
+        """Restore saved settings for calibration file and USB port."""
+        calibration_file = self.settings.value("calibration_file", "")
+        usb_port = self.settings.value("usb_port", "")
+
+        self.calibration_file_edit.setText(calibration_file)
+        self.usb_port_edit.setText(usb_port)
+
+    def closeEvent(self, event):
+        """Save settings when the application is closed."""
+        self.settings.setValue("calibration_file", self.calibration_file_edit.text())
+        self.settings.setValue("usb_port", self.usb_port_edit.text())
+        super().closeEvent(event)
 
     def _joint_position_changed(self, joint: Joint, position: float) -> None:
         self.th.set_joint_position(joint.name, position)
