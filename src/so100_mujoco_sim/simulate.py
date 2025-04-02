@@ -20,7 +20,8 @@ from PySide6.QtWidgets import (
 from so100_mujoco_sim.arm_control import (
     joints_from_model,
     Joint,
-    MujocoArmController
+    MujocoArmController,
+    So100ArmController
 )
 
 
@@ -294,7 +295,9 @@ class Window(QMainWindow):
 
         config_group = QGroupBox("Config")
         config_group.setLayout(config_layout)
-        
+        connect_button = QPushButton("Connect")
+        connect_button.clicked.connect(self._connect_robot)
+
         control_layout = QVBoxLayout()
         # Add the Robot Control group box
         for joint in self.joints:
@@ -305,19 +308,21 @@ class Window(QMainWindow):
         control_layout.addStretch()
 
         reset_button = QPushButton("Reset")
-        reset_button.setMinimumWidth(90)
         reset_button.clicked.connect(self.reset_simulation)
         control_layout.addWidget(reset_button)
 
         robot_control_group = QGroupBox("Robot Control")
         robot_control_group.setLayout(control_layout)
         robot_control_group.setMinimumWidth(300)
+        robot_control_layout = QVBoxLayout()
+        robot_control_layout.setContentsMargins(0,0,0,0)
+        robot_control_layout.addWidget(robot_control_group)
 
         layout = QVBoxLayout()
-        layout.setSpacing(24)
+        layout.setSpacing(12)
         layout.addWidget(config_group)
-        layout.addWidget(robot_control_group)
-
+        layout.addWidget(connect_button)
+        layout.addLayout(robot_control_layout)
         return layout
 
     def _select_calibration_file(self):
@@ -341,6 +346,18 @@ class Window(QMainWindow):
 
     def _joint_position_changed(self, joint: Joint, position: float) -> None:
         self.th.set_joint_position(joint.name, position)
+
+    def _connect_robot(self):
+        print("Connecting to robot...")
+        calibration_file = self.calibration_file_edit.text()
+        usb_port = self.usb_port_edit.text()
+
+        so100_robot = So100ArmController(usb_port, calibration_file)
+
+        
+
+        print(f"Calibration file: {calibration_file}")
+        print(f"USB port: {usb_port}")
 
     def create_free_camera(self):
         cam = mujoco.MjvCamera()

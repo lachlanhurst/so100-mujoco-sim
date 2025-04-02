@@ -1,6 +1,7 @@
 import mujoco
 from dataclasses import dataclass
-
+from lerobot.common.robot_devices.robots.utils import make_robot_from_config
+from configs.so100 import So100Config
 
 @dataclass
 class Joint:
@@ -112,3 +113,45 @@ class MujocoArmController(ArmController):
         """
         for i, joint in enumerate(self.joints):
             self.data.actuator(joint.name).ctrl = self.joint_set_positions[i]
+
+
+class So100ArmController(ArmController):
+    """
+    Class for controlling the So100 robotic arm
+    """
+    def __init__(self, port: str, calibration_dir: str):
+        # Create the So100 robot from the configuration
+        self.robot = make_robot_from_config(
+            So100Config(calibration_dir=calibration_dir, port=port)
+        )
+
+        print("self.robot.config.follower_arms")
+        print(self.robot.config.follower_arms)
+        self.robot.connect()
+        print(f"{self.robot.capture_observation()}")
+
+        # Define the joints of the So100 arm
+        joints = [
+            Joint("shoulder_pan", (-1.57, 1.57)),
+            Joint("shoulder_lift", (-1.57, 1.57)),
+            Joint("elbow_flex", (-1.57, 1.57)),
+            Joint("wrist_flex", (-1.57, 1.57)),
+            Joint("wrist_roll", (-1.57, 1.57)),
+            Joint("gripper", (0, 0.04)),
+        ]
+        super().__init__(joints)
+
+    def update(self):
+        super().update()
+        # Update the actual positions of the joints by reading from the robot
+        # This is where you would read the actual positions of the joints from the robot
+        # and update the joint_actual_positions attribute
+        pass
+
+    def set_positions(self):
+        """
+        Applies the set joint permissions to the So100 robot
+        """
+        # This is where you would send the set joint positions to the robot
+        # for example, using a serial connection or ROS
+        pass
