@@ -20,8 +20,7 @@ PySide6 = ">=6.8.2,<6.9"
 urdf2mjcf = ">=0.2.17"
 
 [tool.pixi.tasks]
-download = { cmd = "python src/so100_mujoco_sim/download.py" }
-convert = { cmd = "python src/so100_mujoco_sim/convert.py" }
+download = { cmd = "python scripts/download.py" }
 simulate = { cmd = "python src/so100_mujoco_sim/simulate.py" }
 
 [tool.pixi.dependencies]

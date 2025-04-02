@@ -1089,7 +1089,7 @@ packages:
 - pypi: .
   name: so100-mujoco-sim
   version: 0.1.0
-  sha256: 920ca27387ab53dca76498f750b30c6cf26812a9848e6dfe833e91ea506ac40a
+  sha256: 4fa8f0ae484a1533f13debe48f7f54ad75148975b3d56779a6b253bde4e1048d
   requires_python: '>=3.11'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/osx-64/tk-8.6.13-h1abcd95_1.conda
