@@ -342,14 +342,6 @@ class Window(QMainWindow):
     def _joint_position_changed(self, joint: Joint, position: float) -> None:
         self.th.set_joint_position(joint.name, position)
 
-    def _speed_changed(self, value: int) -> None:
-        speed = value / 1000
-        self.th.set_speed(speed)
-
-    def _yaw_changed(self, value: int) -> None:
-        yaw = value / 1000
-        self.th.set_yaw(yaw)
-
     def create_free_camera(self):
         cam = mujoco.MjvCamera()
         cam.type = mujoco.mjtCamera.mjCAMERA_FREE
