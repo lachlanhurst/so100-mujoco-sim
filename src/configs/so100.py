@@ -1,7 +1,7 @@
 from lerobot.common.robot_devices.robots.configs import *
 from dataclasses import field, dataclass
 
-@RobotConfig.register_subclass("so100")
+@RobotConfig.register_subclass("so100ms")
 @dataclass
 class So100Config(ManipulatorRobotConfig):
     calibration_dir: str = None
@@ -38,6 +38,10 @@ class So100Config(ManipulatorRobotConfig):
     )
 
     mock: bool = False
+
+    @property
+    def type(self) -> str:
+        return "so100"
 
     def __post_init__(self):
         # Ensure default values for follower_arms are updated with the provided port
