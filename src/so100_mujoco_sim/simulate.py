@@ -347,17 +347,50 @@ class Window(QMainWindow):
     def _joint_position_changed(self, joint: Joint, position: float) -> None:
         self.th.set_joint_position(joint.name, position)
 
+    def show_warning_dialog(self, title: str, message: str) -> None:
+        """
+        Displays a warning dialog with the given title and message.
+
+        :param title: The title of the warning dialog.
+        :param message: The warning message to display.
+        """
+        warning_dialog = QMessageBox(self)
+        warning_dialog.setIcon(QMessageBox.Icon.Warning)
+        warning_dialog.setWindowTitle(title)
+        warning_dialog.setText(message)
+        warning_dialog.setStandardButtons(QMessageBox.Ok)
+        warning_dialog.exec()
+
     def _connect_robot(self):
         print("Connecting to robot...")
         calibration_file = self.calibration_file_edit.text()
         usb_port = self.usb_port_edit.text()
 
-        so100_robot = So100ArmController(usb_port, calibration_file)
+        if calibration_file.strip() == "":
+            self.show_warning_dialog(
+                "Calibration File Error",
+                "Please select a calibration file."
+            )
+            return
+        if usb_port.strip() == "":
+            self.show_warning_dialog(
+                "USB Port Error",
+                "Please enter a USB port."
+            )
+            return
+        # Check if the calibration file exists
+        if not pathlib.Path(calibration_file).exists():
+            self.show_warning_dialog(
+                "Calibration File Error",
+                f"Calibration file '{calibration_file}' does not exist."
+            )
+            return
 
-        
-
-        print(f"Calibration file: {calibration_file}")
-        print(f"USB port: {usb_port}")
+        try:
+            so100_robot = So100ArmController(usb_port, calibration_file)
+        except SerialException as e:
+            self.show_warning_dialog("Connection Error", f"Failed to connect to the robot: {e}")
+            return
 
     def create_free_camera(self):
         cam = mujoco.MjvCamera()
