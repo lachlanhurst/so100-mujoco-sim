@@ -22,7 +22,8 @@ from so100_mujoco_sim.arm_control import (
     joints_from_model,
     Joint,
     MujocoArmController,
-    So100ArmController
+    So100ArmController,
+    update_from_controller
 )
 
 
@@ -108,11 +109,14 @@ class Viewport(QOpenGLWindow):
 
 class UpdateSimThread(QThread):
 
+    update_ui_joint_values = Signal(list)
+
     def __init__(self, model: mujoco.MjModel, data: mujoco.MjData, parent=None) -> None:
         super().__init__(parent)
         self.model = model
         self.data = data
         self.mujoco_controller = MujocoArmController(model, data)
+        self.real_controller: So100ArmController | None = None
         self.running = True
 
         self.mujoco_controller.reset()
@@ -139,6 +143,11 @@ class UpdateSimThread(QThread):
                 # step the simulation
                 mujoco.mj_step(self.model, self.data)
                 self.mujoco_controller.update()
+                # if self.real_controller is not None:
+                #     # update the real robot
+                #     self.real_controller.update()
+                #     # set the mujoco model to the same position as the real robot
+
             else:
                 time.sleep(0.00001)
 
@@ -153,6 +162,17 @@ class UpdateSimThread(QThread):
 
     def set_joint_position(self, joint_name: str, position: float) -> None:
         self.mujoco_controller.set_joint_set_position(joint_name, position)
+
+    def connect_real_robot(self, usb_port: str, calibration_file: str) -> None:
+        real_controller = So100ArmController(usb_port, calibration_file)
+        real_controller.update()
+
+        # this updates the ui, but also raises change events that causes the mujoco
+        # model to update
+        self.update_ui_joint_values.emit(real_controller.get_joint_actual_positions())
+
+        self.real_controller = real_controller
+
 
 
 class JointWidget(QWidget):
@@ -193,6 +213,9 @@ class JointWidget(QWidget):
         layout.addLayout(label_layout)
         layout.addWidget(self.slider)
         self.setLayout(layout)
+
+    def setValue(self, val: float):
+        self.slider.setValue(val * 1000)
 
     def _changed(self, value: int) -> None:
         self.value_label.setText("{:.2f}".format(value / 1000.0))
@@ -246,6 +269,7 @@ class Window(QMainWindow):
         self.resize(900, 600)
 
         self.th = UpdateSimThread(self.model, self.data, self)
+        self.th.update_ui_joint_values.connect(self._update_ui_joint_values)
         self.th.start()
 
         # Restore saved settings
@@ -262,6 +286,14 @@ class Window(QMainWindow):
             pos = self.th.mujoco_controller.joint_actual_positions[i]
             jw = self.joint_widgets[i]
             jw.set_actual_position(pos)
+
+    @Slot(list)
+    def _update_ui_joint_values(self, joint_vals: list):
+        print("joint_vals")
+        print(joint_vals)
+
+        for i, jw in enumerate(self.joint_widgets):
+            jw.setValue(joint_vals[i])
 
     def create_right_side_control(self) -> QLayout:
 
@@ -386,11 +418,7 @@ class Window(QMainWindow):
             )
             return
 
-        try:
-            so100_robot = So100ArmController(usb_port, calibration_file)
-        except SerialException as e:
-            self.show_warning_dialog("Connection Error", f"Failed to connect to the robot: {e}")
-            return
+        self.th.connect_real_robot(usb_port, calibration_file)
 
     def create_free_camera(self):
         cam = mujoco.MjvCamera()

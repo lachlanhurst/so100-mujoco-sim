@@ -1,6 +1,8 @@
 import mujoco
+import torch
 from dataclasses import dataclass
 from lerobot.common.robot_devices.robots.utils import make_robot_from_config
+
 from configs.so100 import So100Config
 
 @dataclass
@@ -33,6 +35,7 @@ def joints_from_model(model: mujoco.MjModel) -> list[Joint]:
     joints: list[Joint] = []
     for i in range(num_joints):
         j = Joint(joint_names[i], tuple(joint_ranges[i]))
+        j.range = (j.range[0] - 3.0, j.range[1] + 3.0)
         joints.append(j)
     return joints
 
@@ -46,20 +49,29 @@ class ArmController:
         self.joint_set_positions = [0.0] * len(self.joints)
         self.joint_actual_positions = [0.0] * len(self.joints)
 
-    def set_joint_set_position(self, joint_name: str, position: float):
-        for i, joint in enumerate(self.joints):
-            if joint.name == joint_name:
-                # Clamp the position within the joint's range
-                clamped_position = max(joint.range[0], min(position, joint.range[1]))
-                self.joint_set_positions[i] = clamped_position
-                break
-
     def set_joint_actual_position(self, joint_name: str, position: float):
         for i, joint in enumerate(self.joints):
             if joint.name == joint_name:
                 # Clamp the position within the joint's range
                 clamped_position = max(joint.range[0], min(position, joint.range[1]))
                 self.joint_actual_positions[i] = clamped_position
+                break
+
+    def get_joint_actual_position(self, joint_name: str) -> float:
+        for i, joint in enumerate(self.joints):
+            if joint.name == joint_name:
+                return self.joint_actual_positions[i]
+        raise ValueError(f"Joint {joint_name} not found")
+
+    def get_joint_actual_positions(self) -> list[float]:
+        return self.joint_actual_positions
+
+    def set_joint_set_position(self, joint_name: str, position: float):
+        for i, joint in enumerate(self.joints):
+            if joint.name == joint_name:
+                # Clamp the position within the joint's range
+                clamped_position = max(joint.range[0], min(position, joint.range[1]))
+                self.joint_set_positions[i] = clamped_position
                 break
 
     def get_joint_set_position(self, joint_name: str) -> float:
@@ -125,19 +137,23 @@ class So100ArmController(ArmController):
             So100Config(calibration_dir=calibration_dir, port=port)
         )
 
-        print("self.robot.config.follower_arms")
-        print(self.robot.config.follower_arms)
         self.robot.connect()
-        print(f"{self.robot.capture_observation()}")
-
         # Define the joints of the So100 arm
+        # joints = [
+        #     Joint("shoulder_pan", (-1.57, 1.57)),
+        #     Joint("shoulder_lift", (-1.57, 1.57)),
+        #     Joint("elbow_flex", (-1.57, 1.57)),
+        #     Joint("wrist_flex", (-1.57, 1.57)),
+        #     Joint("wrist_roll", (-1.57, 1.57)),
+        #     Joint("gripper", (0, 0.04)),
+        # ]
         joints = [
-            Joint("shoulder_pan", (-1.57, 1.57)),
-            Joint("shoulder_lift", (-1.57, 1.57)),
-            Joint("elbow_flex", (-1.57, 1.57)),
-            Joint("wrist_flex", (-1.57, 1.57)),
-            Joint("wrist_roll", (-1.57, 1.57)),
-            Joint("gripper", (0, 0.04)),
+            Joint("shoulder_pan", (-10.57, 10.57)),
+            Joint("shoulder_lift", (-10.57, 10.57)),
+            Joint("elbow_flex", (-10.57, 10.57)),
+            Joint("wrist_flex", (-10.57, 10.57)),
+            Joint("wrist_roll", (-10.57, 10.57)),
+            Joint("gripper", (-10, 10.04)),
         ]
         super().__init__(joints)
 
@@ -146,7 +162,15 @@ class So100ArmController(ArmController):
         # Update the actual positions of the joints by reading from the robot
         # This is where you would read the actual positions of the joints from the robot
         # and update the joint_actual_positions attribute
-        pass
+        obs: torch.Tensor = self.robot.capture_observation()['observation.state']
+        obs = torch.deg2rad(obs).tolist()
+        # TODO: which motors should be flipped is available in the calibration config
+        obs[1] = obs[1] * -1.0
+        obs[4] = obs[4] * -1.0
+
+        for i, joint in enumerate(self.joints):
+            joint_actual_pos = obs[i]
+            self.set_joint_actual_position(joint.name, joint_actual_pos)
 
     def set_positions(self):
         """
@@ -155,3 +179,14 @@ class So100ArmController(ArmController):
         # This is where you would send the set joint positions to the robot
         # for example, using a serial connection or ROS
         pass
+
+
+def update_from_controller(source: ArmController, target: ArmController):
+    """
+    Updates the target controller arm set positions with the actual positions
+    from the source arm controller
+    """
+    # use the arrays directly as while the order of joints is consistent
+    # between the real robot config and the mujoco model, the names are not
+    target.set_joint_set_positions(source.get_joint_actual_positions())
+
