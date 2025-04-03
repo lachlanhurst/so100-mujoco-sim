@@ -14,8 +14,9 @@ from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QPushButton, QSizePolicy,
     QVBoxLayout, QGroupBox, QHBoxLayout, QSlider, QLabel, QFileDialog,
-    QLineEdit, QLayout
+    QLineEdit, QLayout, QMessageBox
 )
+from serial import SerialException
 
 from so100_mujoco_sim.arm_control import (
     joints_from_model,
@@ -362,7 +363,6 @@ class Window(QMainWindow):
         warning_dialog.exec()
 
     def _connect_robot(self):
-        print("Connecting to robot...")
         calibration_file = self.calibration_file_edit.text()
         usb_port = self.usb_port_edit.text()
 
@@ -412,6 +412,8 @@ class Window(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication()
+    app.setStyle('fusion')
+    app.setAttribute(Qt.ApplicationAttribute.AA_DontUseNativeDialogs, True)
     w = Window()
     w.show()
     app.exec()
