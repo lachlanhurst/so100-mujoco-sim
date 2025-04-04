@@ -207,3 +207,17 @@ def update_from_controller(source: ArmController, target: ArmController):
     # between the real robot config and the mujoco model, the names are not
     target.set_joint_set_positions(source.get_joint_actual_positions())
 
+
+def positions_aligned(a: list[float], b: list[float], tolerance_rad: float = 0.1) -> bool:
+    """
+    Checks if each value in list `a` is within `tolerance_rad` of the corresponding value in list `b`.
+
+    :param a: List of float values representing the first set of positions.
+    :param b: List of float values representing the second set of positions.
+    :param tolerance_rad: The tolerance within which the positions are considered aligned.
+    :return: True if all values in `a` are within `tolerance_rad` of the corresponding values in `b`, False otherwise.
+    """
+    if len(a) != len(b):
+        raise ValueError("Lists `a` and `b` must have the same length.")
+
+    return all(abs(a[i] - b[i]) <= tolerance_rad for i in range(len(a)))
