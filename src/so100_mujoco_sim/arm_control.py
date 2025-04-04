@@ -35,7 +35,7 @@ def joints_from_model(model: mujoco.MjModel) -> list[Joint]:
     joints: list[Joint] = []
     for i in range(num_joints):
         j = Joint(joint_names[i], tuple(joint_ranges[i]))
-        j.range = (j.range[0] - 3.0, j.range[1] + 3.0)
+        j.range = (j.range[0], j.range[1])
         joints.append(j)
     return joints
 
