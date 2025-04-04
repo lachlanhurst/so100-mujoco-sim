@@ -140,13 +140,19 @@ class UpdateSimThread(QThread):
                     # apply the positions set via the UI to the mujoco model
                     self.mujoco_controller.set_positions()
 
+                    if self.real_controller is not None:
+                        # update the real_controller actual positions with positions from robot
+                        self.real_controller.update()
+
+                        # copy the positions from the mujoco_controller
+                        # (set via ui) to real_controller
+                        update_from_controller(self.mujoco_controller, self.real_controller)
+                        # now send those positions to the real robot
+                        self.real_controller.set_positions()
+
                 # step the simulation
                 mujoco.mj_step(self.model, self.data)
                 self.mujoco_controller.update()
-                # if self.real_controller is not None:
-                #     # update the real robot
-                #     self.real_controller.update()
-                #     # set the mujoco model to the same position as the real robot
 
             else:
                 time.sleep(0.00001)
@@ -289,8 +295,8 @@ class Window(QMainWindow):
 
     @Slot(list)
     def _update_ui_joint_values(self, joint_vals: list):
-        print("joint_vals")
-        print(joint_vals)
+        # print("joint_vals")
+        # print(joint_vals)
 
         for i, jw in enumerate(self.joint_widgets):
             jw.setValue(joint_vals[i])

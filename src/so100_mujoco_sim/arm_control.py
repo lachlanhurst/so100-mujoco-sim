@@ -147,13 +147,15 @@ class So100ArmController(ArmController):
         #     Joint("wrist_roll", (-1.57, 1.57)),
         #     Joint("gripper", (0, 0.04)),
         # ]
+        # we get a JointOutOfRangeError if any of the angle joints exceed +/- 270 deg (4.69 rad)
+        # or 
         joints = [
-            Joint("shoulder_pan", (-10.57, 10.57)),
-            Joint("shoulder_lift", (-10.57, 10.57)),
-            Joint("elbow_flex", (-10.57, 10.57)),
-            Joint("wrist_flex", (-10.57, 10.57)),
-            Joint("wrist_roll", (-10.57, 10.57)),
-            Joint("gripper", (-10, 10.04)),
+            Joint("shoulder_pan", (-4.69, 4.69)),
+            Joint("shoulder_lift", (-4.69, 4.69)),
+            Joint("elbow_flex", (-4.69, 4.69)),
+            Joint("wrist_flex", (-4.69, 4.69)),
+            Joint("wrist_roll", (-4.69, 4.69)),
+            Joint("gripper", (-0.17, 1.9)),
         ]
         super().__init__(joints)
 
@@ -163,10 +165,16 @@ class So100ArmController(ArmController):
         # This is where you would read the actual positions of the joints from the robot
         # and update the joint_actual_positions attribute
         obs: torch.Tensor = self.robot.capture_observation()['observation.state']
+
+        # print("obs")
+        # print(obs)
         obs = torch.deg2rad(obs).tolist()
         # TODO: which motors should be flipped is available in the calibration config
-        obs[1] = obs[1] * -1.0
-        obs[4] = obs[4] * -1.0
+        # kind of that is, the first one isn't reversed in the calibration so not sure
+        # what's up
+        obs[0] *= -1.0
+        obs[1] *= -1.0
+        obs[4] *= -1.0
 
         for i, joint in enumerate(self.joints):
             joint_actual_pos = obs[i]
@@ -176,9 +184,18 @@ class So100ArmController(ArmController):
         """
         Applies the set joint permissions to the So100 robot
         """
-        # This is where you would send the set joint positions to the robot
-        # for example, using a serial connection or ROS
-        pass
+        position_floats = list(self.joint_set_positions)
+        position_floats[0] *= -1.0
+        position_floats[1] *= -1.0
+        position_floats[4] *= -1.0
+
+        position_tensor = torch.FloatTensor(position_floats)
+        position_tensor = torch.rad2deg(position_tensor)
+
+        self.robot.send_action(position_tensor)
+
+        # print("position_tensor")
+        # print(position_tensor)
 
 
 def update_from_controller(source: ArmController, target: ArmController):
