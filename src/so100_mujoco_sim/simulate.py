@@ -163,8 +163,8 @@ class UpdateSimThread(QThread):
     def set_joint_position(self, joint_name: str, position: float) -> None:
         self.mujoco_controller.set_joint_set_position(joint_name, position)
 
-    def connect_real_robot(self, usb_port: str, calibration_file: str) -> None:
-        real_controller = So100ArmController(usb_port, calibration_file)
+    def connect_real_robot(self, usb_port: str, calibration_folder: str) -> None:
+        real_controller = So100ArmController(usb_port, calibration_folder)
         real_controller.update()
 
         # this updates the ui, but also raises change events that causes the mujoco
@@ -301,17 +301,17 @@ class Window(QMainWindow):
         config_layout = QVBoxLayout()
         config_layout.setSpacing(8)
 
-        # Calibration file selection
+        # Calibration folder selection
         calibration_layout_v = QVBoxLayout()
         calibration_layout_v.setSpacing(0)
-        calibration_layout_v.addWidget(QLabel("LeRobot Calibration File:"))
+        calibration_layout_v.addWidget(QLabel("LeRobot Calibration Folder:"))
         calibration_layout = QHBoxLayout()
         calibration_layout.setSpacing(4)
-        self.calibration_file_edit = QLineEdit()
-        self.calibration_file_edit.setPlaceholderText("Select file...")
+        self.calibration_folder_edit = QLineEdit()
+        self.calibration_folder_edit.setPlaceholderText("Select folder...")
         calibration_button = QPushButton("Browse")
-        calibration_button.clicked.connect(self._select_calibration_file)
-        calibration_layout.addWidget(self.calibration_file_edit)
+        calibration_button.clicked.connect(self._select_calibration_folder)
+        calibration_layout.addWidget(self.calibration_folder_edit)
         calibration_layout.addWidget(calibration_button)
         calibration_layout_v.addLayout(calibration_layout)
 
@@ -358,22 +358,22 @@ class Window(QMainWindow):
         layout.addLayout(robot_control_layout)
         return layout
 
-    def _select_calibration_file(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Select Calibration File", "", "All Files (*)")
-        if file_path:
-            self.calibration_file_edit.setText(file_path)
+    def _select_calibration_folder(self):
+        folder_path = QFileDialog.getExistingDirectory(self, "Select Calibration Folder")
+        if folder_path:
+            self.calibration_folder_edit.setText(folder_path)
 
     def restore_settings(self):
-        """Restore saved settings for calibration file and USB port."""
-        calibration_file = self.settings.value("calibration_file", "")
+        """Restore saved settings for calibration folder and USB port."""
+        calibration_folder = self.settings.value("calibration_folder", "")
         usb_port = self.settings.value("usb_port", "")
 
-        self.calibration_file_edit.setText(calibration_file)
+        self.calibration_folder_edit.setText(calibration_folder)
         self.usb_port_edit.setText(usb_port)
 
     def closeEvent(self, event):
         """Save settings when the application is closed."""
-        self.settings.setValue("calibration_file", self.calibration_file_edit.text())
+        self.settings.setValue("calibration_folder", self.calibration_folder_edit.text())
         self.settings.setValue("usb_port", self.usb_port_edit.text())
         super().closeEvent(event)
 
@@ -395,10 +395,10 @@ class Window(QMainWindow):
         warning_dialog.exec()
 
     def _connect_robot(self):
-        calibration_file = self.calibration_file_edit.text()
+        calibration_folder = self.calibration_folder_edit.text()
         usb_port = self.usb_port_edit.text()
 
-        if calibration_file.strip() == "":
+        if calibration_folder.strip() == "":
             self.show_warning_dialog(
                 "Calibration File Error",
                 "Please select a calibration file."
@@ -411,14 +411,14 @@ class Window(QMainWindow):
             )
             return
         # Check if the calibration file exists
-        if not pathlib.Path(calibration_file).exists():
+        if not pathlib.Path(calibration_folder).exists():
             self.show_warning_dialog(
                 "Calibration File Error",
-                f"Calibration file '{calibration_file}' does not exist."
+                f"Calibration file '{calibration_folder}' does not exist."
             )
             return
 
-        self.th.connect_real_robot(usb_port, calibration_file)
+        self.th.connect_real_robot(usb_port, calibration_folder)
 
     def create_free_camera(self):
         cam = mujoco.MjvCamera()
