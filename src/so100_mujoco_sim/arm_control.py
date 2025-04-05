@@ -2,6 +2,8 @@ import mujoco
 import torch
 from dataclasses import dataclass
 from lerobot.common.robot_devices.robots.utils import make_robot_from_config
+from lerobot.common.robot_devices.motors.feetech import FeetechMotorsBus, TorqueMode
+from typing import Callable
 
 from configs.so100 import So100Config
 
@@ -55,7 +57,7 @@ class ArmController:
         self.joint_output_positions = [0.0] * len(self.joints)
 
         self._primary = False
-        self._name = "User Interface"
+        self._name = "Base"
 
     @property
     def primary(self) -> bool:
@@ -120,15 +122,30 @@ class ArmController:
 
     def update(self):
         self.joint_actual_positions = list(self.joint_set_positions)
+        self.joint_output_positions = list(self.joint_set_positions)
 
     def set_positions(self):
-        self.joint_output_positions = list(self.joint_set_positions)
+        pass
 
     def _primary_set(self):
         """ override this function if the controller needs to do something when
         its state as primary is changed.
         """
         pass
+
+
+class UiArmController(ArmController):
+
+    def __init__(self, joints: list[Joint], set_positions_callback: Callable | None = None):
+        super().__init__(joints)
+
+        self._name = "User Interface"
+        self.set_positions_callback = set_positions_callback
+
+    def set_positions(self):
+        if self.set_positions_callback is not None:
+            self.set_positions_callback()
+
 
 class MujocoArmController(ArmController):
     """
@@ -220,6 +237,7 @@ class So100ArmController(ArmController):
         """
         if self.robot is None:
             return
+
         position_floats = list(self.joint_set_positions)
         position_floats[0] *= -1.0
         position_floats[1] *= -1.0
@@ -237,8 +255,18 @@ class So100ArmController(ArmController):
         """ override this function if the controller needs to do something when
         its state as primary is changed.
         """
-        if self.primary:
-            print("REAL is primary")
+        if self.robot is None:
+            return
+
+        for name in self.robot.follower_arms:
+            mb: FeetechMotorsBus =  self.robot.follower_arms[name]
+
+            if self.primary:
+                mb.write("Torque_Enable", TorqueMode.DISABLED.value)
+                mb.write("Lock", 0)
+            else:
+                mb.write("Torque_Enable", TorqueMode.ENABLED.value)
+                mb.write("Lock", 1)
 
 
 def update_from_controller(source: ArmController, target: ArmController):
