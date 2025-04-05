@@ -21,6 +21,7 @@ from serial import SerialException
 from so100_mujoco_sim.arm_control import (
     joints_from_model,
     Joint,
+    ArmController,
     MujocoArmController,
     So100ArmController,
     update_from_controller,
@@ -121,6 +122,9 @@ class UpdateSimThread(QThread):
         self.real_controller_initialized = False
         self.running = True
 
+        self.primary_controller: ArmController = self.mujoco_controller
+        self.secondary_controllers: list[ArmController] = []
+
         self.mujoco_controller.reset()
 
         # reset the simulation timer
@@ -146,22 +150,9 @@ class UpdateSimThread(QThread):
                         # update the real_controller actual positions with positions from robot
                         self.real_controller.update()
 
-                        if not self.real_controller_initialized:
-                            # check to make sure the position of the mujoco model is close
-                            # to the position of the real robot before we start updating
-                            # the position of the real robot. Otherwise we get a big jerk
-                            # into position!
-                            self.real_controller_initialized = positions_aligned(
-                                self.mujoco_controller.joint_actual_positions,
-                                self.real_controller.joint_actual_positions
-                            )
-
-                        if self.real_controller_initialized:
-                            # copy the positions from the mujoco_controller
-                            # (set via ui) to real_controller
-                            update_from_controller(self.mujoco_controller, self.real_controller)
-                            # now send those positions to the real robot
-                            self.real_controller.set_positions()
+                        update_from_controller(self.mujoco_controller, self.real_controller)
+                        # now send those positions to the real robot
+                        self.real_controller.set_positions()
 
                 # step the simulation
                 mujoco.mj_step(self.model, self.data)
@@ -192,7 +183,7 @@ class UpdateSimThread(QThread):
         self.update_ui_joint_values.emit(real_controller.get_joint_actual_positions())
 
         self.real_controller = real_controller
-
+        self.secondary_controllers.append(self.real_controller)
 
 
 class JointWidget(QWidget):
