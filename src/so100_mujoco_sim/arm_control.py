@@ -182,10 +182,11 @@ class So100ArmController(ArmController):
 
     def connect(self, port: str, calibration_dir: str) -> None:
         # Create the So100 robot from the configuration
-        self.robot = make_robot_from_config(
+        robot = make_robot_from_config(
             So100Config(calibration_dir=calibration_dir, port=port)
         )
-        self.robot.connect()
+        robot.connect()
+        self.robot = robot
 
     def update(self):
         super().update()
