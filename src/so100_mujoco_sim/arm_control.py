@@ -205,7 +205,7 @@ def update_from_controller(source: ArmController, target: ArmController):
     """
     # use the arrays directly as while the order of joints is consistent
     # between the real robot config and the mujoco model, the names are not
-    target.set_joint_set_positions(source.get_joint_actual_positions())
+    target.set_joint_set_positions(source.get_joint_set_positions())
 
 
 def positions_aligned(a: list[float], b: list[float], tolerance_rad: float = 0.1) -> bool:
