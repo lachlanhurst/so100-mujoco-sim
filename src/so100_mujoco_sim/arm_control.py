@@ -156,13 +156,8 @@ class So100ArmController(ArmController):
     """
     Class for controlling the So100 robotic arm
     """
-    def __init__(self, port: str, calibration_dir: str):
-        # Create the So100 robot from the configuration
-        self.robot = make_robot_from_config(
-            So100Config(calibration_dir=calibration_dir, port=port)
-        )
-
-        self.robot.connect()
+    def __init__(self, ):
+        self.robot = None
 
         # we get a JointOutOfRangeError if any of the angle joints exceed +/- 270 deg (4.69 rad)
         # or -10 to 110 for the gripper
@@ -176,8 +171,17 @@ class So100ArmController(ArmController):
         ]
         super().__init__(joints)
 
+    def connect(self, port: str, calibration_dir: str) -> None:
+        # Create the So100 robot from the configuration
+        self.robot = make_robot_from_config(
+            So100Config(calibration_dir=calibration_dir, port=port)
+        )
+        self.robot.connect()
+
     def update(self):
         super().update()
+        if self.robot is None:
+            return
         # Update the actual positions of the joints by reading from the robot
         # This is where you would read the actual positions of the joints from the robot
         # and update the joint_actual_positions attribute
@@ -204,6 +208,8 @@ class So100ArmController(ArmController):
         """
         Applies the set joint permissions to the So100 robot
         """
+        if self.robot is None:
+            return
         position_floats = list(self.joint_set_positions)
         position_floats[0] *= -1.0
         position_floats[1] *= -1.0

@@ -122,13 +122,12 @@ class UpdateSimThread(QThread):
         # reuse the mujoco model joint definition
         self.ui_controller = ArmController(self.mujoco_controller.joints)
         self.ui_controller.primary = True
-        # user hasn't committed to usb port and calibration folder, so don't
-        # make this yet
-        self.real_controller: So100ArmController | None = None
+        self.real_controller = So100ArmController()
 
         self.arm_controllers: list[ArmController] = []
         self.arm_controllers.append(self.ui_controller)
         self.arm_controllers.append(self.mujoco_controller)
+        self.arm_controllers.append(self.real_controller)
 
         # reset the simulation timer
         self.reset()
@@ -187,15 +186,12 @@ class UpdateSimThread(QThread):
         self.ui_controller.set_joint_set_position(joint_name, position)
 
     def connect_real_robot(self, usb_port: str, calibration_folder: str) -> None:
-        real_controller = So100ArmController(usb_port, calibration_folder)
-        real_controller.update()
+        self.real_controller.connect(usb_port, calibration_folder)
+        self.real_controller.update()
 
         # this updates the ui, but also raises change events that causes the mujoco
         # model to update
-        self.update_ui_joint_values.emit(real_controller.joint_output_positions)
-
-        self.real_controller = real_controller
-        self.arm_controllers.append(self.real_controller)
+        self.update_ui_joint_values.emit(self.real_controller.joint_output_positions)
 
 
 class JointWidget(QWidget):
