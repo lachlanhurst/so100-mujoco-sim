@@ -46,8 +46,13 @@ class ArmController:
     """
     def __init__(self, joints: list[Joint]):
         self.joints = joints
+        # the position that this controller has been told to move to
         self.joint_set_positions = [0.0] * len(self.joints)
+        # the position this controller is in right now
         self.joint_actual_positions = [0.0] * len(self.joints)
+        # the position this controller provides to other controllers
+        # when it is primary
+        self.joint_output_positions = [0.0] * len(self.joints)
 
     def set_joint_actual_position(self, joint_name: str, position: float):
         for i, joint in enumerate(self.joints):
@@ -95,9 +100,13 @@ class ArmController:
     def reset(self):
         self.joint_set_positions = [0.0] * len(self.joints)
         self.joint_actual_positions = [0.0] * len(self.joints)
-    
+        self.joint_output_positions = [0.0] * len(self.joints)
+
     def update(self):
-        pass
+        self.joint_actual_positions = list(self.joint_set_positions)
+
+    def set_positions(self):
+        self.joint_output_positions = list(self.joint_set_positions)
 
 
 class MujocoArmController(ArmController):
@@ -179,6 +188,9 @@ class So100ArmController(ArmController):
         for i, joint in enumerate(self.joints):
             joint_actual_pos = obs[i]
             self.set_joint_actual_position(joint.name, joint_actual_pos)
+        
+        # set the output positions to be the actual robot positions
+        self.joint_output_positions = list(self.joint_actual_positions)
 
     def set_positions(self):
         """
@@ -205,7 +217,7 @@ def update_from_controller(source: ArmController, target: ArmController):
     """
     # use the arrays directly as while the order of joints is consistent
     # between the real robot config and the mujoco model, the names are not
-    target.set_joint_set_positions(source.get_joint_set_positions())
+    target.set_joint_set_positions(source.joint_output_positions)
 
 
 def positions_aligned(a: list[float], b: list[float], tolerance_rad: float = 0.1) -> bool:

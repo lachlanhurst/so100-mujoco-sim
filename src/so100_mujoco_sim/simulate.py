@@ -118,14 +118,17 @@ class UpdateSimThread(QThread):
         self.model = model
         self.data = data
         self.mujoco_controller = MujocoArmController(model, data)
+        # user interface controller (the UI sliders)
+        # reuse the mujoco model joint definition
+        self.ui_controller = ArmController(self.mujoco_controller.joints)
+        # user hasn't committed to usb port and calibration folder, so don't
+        # make this yet
         self.real_controller: So100ArmController | None = None
-        self.real_controller_initialized = False
         self.running = True
 
-        self.primary_controller: ArmController = self.mujoco_controller
+        self.primary_controller: ArmController = self.ui_controller
         self.secondary_controllers: list[ArmController] = []
-
-        self.mujoco_controller.reset()
+        self.secondary_controllers.append(self.mujoco_controller)
 
         # reset the simulation timer
         self.reset()
@@ -143,20 +146,22 @@ class UpdateSimThread(QThread):
                 # Update the control loop at a 100hz
                 if (time.monotonic_ns() - self.last_robot_update) / 1_000_000_000 >= (1/100):
                     self.last_robot_update = time.monotonic_ns()
-                    # apply the positions set via the UI to the mujoco model
-                    self.mujoco_controller.set_positions()
 
-                    if self.real_controller is not None:
-                        # update the real_controller actual positions with positions from robot
-                        self.real_controller.update()
+                    # update the actual positions of the primary controller
+                    self.primary_controller.update()
+                    # apply the positions set to the primary controller
+                    self.primary_controller.set_positions()
 
-                        update_from_controller(self.mujoco_controller, self.real_controller)
-                        # now send those positions to the real robot
-                        self.real_controller.set_positions()
+                    for sc in self.secondary_controllers:
+                        # get actual positions for the secondary controllers
+                        sc.update()
+                        # set each of the secondary controllers set positions to that of the primary
+                        update_from_controller(self.primary_controller, sc)
+                        # now send those positions to the secondary controller
+                        sc.set_positions()
 
                 # step the simulation
                 mujoco.mj_step(self.model, self.data)
-                self.mujoco_controller.update()
 
             else:
                 time.sleep(0.00001)
@@ -171,16 +176,17 @@ class UpdateSimThread(QThread):
         self.mujoco_controller.reset()
 
     def set_joint_position(self, joint_name: str, position: float) -> None:
-        self.mujoco_controller.set_joint_set_position(joint_name, position)
+        self.ui_controller.set_joint_set_position(joint_name, position)
+        # self.mujoco_controller.set_joint_set_position(joint_name, position)
+        # self.mujoco_controller.set_positions()
 
     def connect_real_robot(self, usb_port: str, calibration_folder: str) -> None:
-        self.real_controller_initialized = False
         real_controller = So100ArmController(usb_port, calibration_folder)
         real_controller.update()
 
         # this updates the ui, but also raises change events that causes the mujoco
         # model to update
-        self.update_ui_joint_values.emit(real_controller.get_joint_actual_positions())
+        self.update_ui_joint_values.emit(real_controller.joint_output_positions)
 
         self.real_controller = real_controller
         self.secondary_controllers.append(self.real_controller)
