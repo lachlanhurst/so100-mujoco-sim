@@ -54,6 +54,17 @@ class ArmController:
         # when it is primary
         self.joint_output_positions = [0.0] * len(self.joints)
 
+        self._primary = False
+
+    @property
+    def primary(self) -> bool:
+        return self._primary
+
+    @primary.setter
+    def primary(self, value: bool) -> None:
+        self._primary = value
+        self._primary_set()
+
     def set_joint_actual_position(self, joint_name: str, position: float):
         for i, joint in enumerate(self.joints):
             if joint.name == joint_name:
@@ -108,6 +119,11 @@ class ArmController:
     def set_positions(self):
         self.joint_output_positions = list(self.joint_set_positions)
 
+    def _primary_set(self):
+        """ override this function if the controller needs to do something when
+        its state as primary is changed.
+        """
+        pass
 
 class MujocoArmController(ArmController):
     """
