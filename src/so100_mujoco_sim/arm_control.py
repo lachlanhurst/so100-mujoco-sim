@@ -55,6 +55,7 @@ class ArmController:
         self.joint_output_positions = [0.0] * len(self.joints)
 
         self._primary = False
+        self._name = "User Interface"
 
     @property
     def primary(self) -> bool:
@@ -64,6 +65,10 @@ class ArmController:
     def primary(self, value: bool) -> None:
         self._primary = value
         self._primary_set()
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     def set_joint_actual_position(self, joint_name: str, position: float):
         for i, joint in enumerate(self.joints):
@@ -135,6 +140,8 @@ class MujocoArmController(ArmController):
         self.model = model
         self.data = data
 
+        self._name = "Simulation"
+
     def update(self):
         super().update()
 
@@ -170,6 +177,8 @@ class So100ArmController(ArmController):
             Joint("gripper", (-0.17, 1.9)),
         ]
         super().__init__(joints)
+
+        self._name = "Real"
 
     def connect(self, port: str, calibration_dir: str) -> None:
         # Create the So100 robot from the configuration
