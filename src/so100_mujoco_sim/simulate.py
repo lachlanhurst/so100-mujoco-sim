@@ -14,7 +14,7 @@ from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QPushButton, QSizePolicy,
     QVBoxLayout, QGroupBox, QHBoxLayout, QSlider, QLabel, QFileDialog,
-    QLineEdit, QLayout, QMessageBox
+    QLineEdit, QLayout, QMessageBox, QComboBox
 )
 from serial import SerialException
 
@@ -185,6 +185,27 @@ class UpdateSimThread(QThread):
     def set_joint_position(self, joint_name: str, position: float) -> None:
         self.ui_controller.set_joint_set_position(joint_name, position)
 
+    def get_controller_names(self) -> str:
+        return [c.name for c in self.arm_controllers]
+
+    def get_primary_controller_index(self) -> int:
+        for i, c in enumerate(self.arm_controllers):
+            if c.primary:
+                return i
+        return 0
+
+    def set_primary_controller_index(self, index: int) -> int:
+        # first set the new primary controller. Having multiple primary
+        # controllers probably isn't an issue, but having none could be
+        # hence why we do two loops, just in case an update happens at
+        # exactly the wrong time
+        for i, c in enumerate(self.arm_controllers):
+            if i == index:
+                c.primary = True
+        for i, c in enumerate(self.arm_controllers):
+            if i != index:
+                c.primary = False
+
     def connect_real_robot(self, usb_port: str, calibration_folder: str) -> None:
         self.real_controller.connect(usb_port, calibration_folder)
         self.real_controller.update()
@@ -273,6 +294,9 @@ class Window(QMainWindow):
         w.setLayout(layout)
         self.setCentralWidget(w)
 
+        self.th = UpdateSimThread(self.model, self.data, self)
+        self.th.update_ui_joint_values.connect(self._update_ui_joint_values)
+
         layout_right_side = QVBoxLayout()
         layout_right_side.setSpacing(8)
         layout_robot_controls = QVBoxLayout()
@@ -287,8 +311,6 @@ class Window(QMainWindow):
 
         self.resize(900, 600)
 
-        self.th = UpdateSimThread(self.model, self.data, self)
-        self.th.update_ui_joint_values.connect(self._update_ui_joint_values)
         self.th.start()
 
         # Restore saved settings
@@ -350,6 +372,17 @@ class Window(QMainWindow):
         connect_button = QPushButton("Connect")
         connect_button.clicked.connect(self._connect_robot)
 
+        # Dropdown for selecting the primary controller
+        controller_layout = QHBoxLayout()
+        controller_layout.setSpacing(4)
+        controller_layout.addWidget(QLabel("Control with:"))
+        self.controller_dropdown = QComboBox()
+        self.controller_dropdown.addItems(self.th.get_controller_names())
+        self.controller_dropdown.setCurrentIndex(self.th.get_primary_controller_index())
+        self.controller_dropdown.currentIndexChanged.connect(self._set_primary_controller)
+        controller_layout.addWidget(self.controller_dropdown)
+        controller_layout.setStretch(1,1)
+
         control_layout = QVBoxLayout()
         # Add the Robot Control group box
         for joint in self.joints:
@@ -374,6 +407,7 @@ class Window(QMainWindow):
         layout.setSpacing(12)
         layout.addWidget(config_group)
         layout.addWidget(connect_button)
+        layout.addLayout(controller_layout)
         layout.addLayout(robot_control_layout)
         return layout
 
@@ -381,6 +415,12 @@ class Window(QMainWindow):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Calibration Folder")
         if folder_path:
             self.calibration_folder_edit.setText(folder_path)
+
+    def _set_primary_controller(self, index: int):
+        """
+        Sets the selected ArmController as the primary controller.
+        """
+        self.th.set_primary_controller_index(index)
 
     def restore_settings(self):
         """Restore saved settings for calibration folder and USB port."""

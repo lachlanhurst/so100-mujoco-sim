@@ -233,6 +233,13 @@ class So100ArmController(ArmController):
         # print("position_tensor")
         # print(position_tensor)
 
+    def _primary_set(self):
+        """ override this function if the controller needs to do something when
+        its state as primary is changed.
+        """
+        if self.primary:
+            print("REAL is primary")
+
 
 def update_from_controller(source: ArmController, target: ArmController):
     """
