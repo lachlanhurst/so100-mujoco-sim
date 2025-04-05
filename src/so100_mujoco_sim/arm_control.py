@@ -163,17 +163,9 @@ class So100ArmController(ArmController):
         )
 
         self.robot.connect()
-        # Define the joints of the So100 arm
-        # joints = [
-        #     Joint("shoulder_pan", (-1.57, 1.57)),
-        #     Joint("shoulder_lift", (-1.57, 1.57)),
-        #     Joint("elbow_flex", (-1.57, 1.57)),
-        #     Joint("wrist_flex", (-1.57, 1.57)),
-        #     Joint("wrist_roll", (-1.57, 1.57)),
-        #     Joint("gripper", (0, 0.04)),
-        # ]
+
         # we get a JointOutOfRangeError if any of the angle joints exceed +/- 270 deg (4.69 rad)
-        # or 
+        # or -10 to 110 for the gripper
         joints = [
             Joint("shoulder_pan", (-4.69, 4.69)),
             Joint("shoulder_lift", (-4.69, 4.69)),
