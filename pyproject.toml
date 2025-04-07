@@ -11,7 +11,7 @@ requires = ["hatchling"]
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
-platforms = ["osx-64", "osx-arm64"]
+platforms = ["osx-64", "osx-arm64", "win-64"]
 
 [tool.pixi.pypi-dependencies]
 so100_mujoco_sim = { path = ".", editable = true }
