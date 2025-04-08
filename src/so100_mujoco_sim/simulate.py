@@ -153,8 +153,7 @@ class Window(QMainWindow):
         # should probably get this name from the controller itself
         self._set_enable_ui_joint_controls(name == "User Interface")
 
-    def create_right_side_control(self) -> QLayout:
-
+    def _create_config_group(self) -> QGroupBox:
         # Add the Config group box
         config_layout = QVBoxLayout()
         config_layout.setSpacing(8)
@@ -186,21 +185,9 @@ class Window(QMainWindow):
 
         config_group = QGroupBox("Config")
         config_group.setLayout(config_layout)
-        self.connect_button = QPushButton("Connect")
-        self.connect_button.clicked.connect(self._connect_robot)
+        return config_group
 
-        # Dropdown for selecting the primary controller
-        controller_layout = QHBoxLayout()
-        controller_layout.setSpacing(4)
-        controller_layout.addWidget(QLabel("Control with:"))
-        self.controller_dropdown = QComboBox()
-        self.controller_dropdown.addItems(self.th.get_controller_names())
-        self.controller_dropdown.setCurrentIndex(self.th.get_primary_controller_index())
-        self.controller_dropdown.currentIndexChanged.connect(self._set_primary_controller)
-        self._update_controllers_enabled()
-        controller_layout.addWidget(self.controller_dropdown)
-        controller_layout.setStretch(1,1)
-
+    def _create_robot_control_group(self) -> QGroupBox:
         control_layout = QVBoxLayout()
         # Add the Robot Control group box
         for joint in self.joints:
@@ -217,13 +204,32 @@ class Window(QMainWindow):
         robot_control_group = QGroupBox("Robot Control")
         robot_control_group.setLayout(control_layout)
         robot_control_group.setMinimumWidth(300)
+
+        return robot_control_group
+
+    def create_right_side_control(self) -> QLayout:
+        self.connect_button = QPushButton("Connect")
+        self.connect_button.clicked.connect(self._connect_robot)
+
+        # Dropdown for selecting the primary controller
+        controller_layout = QHBoxLayout()
+        controller_layout.setSpacing(4)
+        controller_layout.addWidget(QLabel("Control with:"))
+        self.controller_dropdown = QComboBox()
+        self.controller_dropdown.addItems(self.th.get_controller_names())
+        self.controller_dropdown.setCurrentIndex(self.th.get_primary_controller_index())
+        self.controller_dropdown.currentIndexChanged.connect(self._set_primary_controller)
+        self._update_controllers_enabled()
+        controller_layout.addWidget(self.controller_dropdown)
+        controller_layout.setStretch(1,1)
+
         robot_control_layout = QVBoxLayout()
         robot_control_layout.setContentsMargins(0,0,0,0)
-        robot_control_layout.addWidget(robot_control_group)
+        robot_control_layout.addWidget(self._create_robot_control_group())
 
         layout = QVBoxLayout()
         layout.setSpacing(12)
-        layout.addWidget(config_group)
+        layout.addWidget(self._create_config_group())
         layout.addWidget(self.connect_button)
         layout.addLayout(controller_layout)
         layout.addLayout(robot_control_layout)
