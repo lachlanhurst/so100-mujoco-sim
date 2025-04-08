@@ -186,8 +186,8 @@ class Window(QMainWindow):
 
         config_group = QGroupBox("Config")
         config_group.setLayout(config_layout)
-        connect_button = QPushButton("Connect")
-        connect_button.clicked.connect(self._connect_robot)
+        self.connect_button = QPushButton("Connect")
+        self.connect_button.clicked.connect(self._connect_robot)
 
         # Dropdown for selecting the primary controller
         controller_layout = QHBoxLayout()
@@ -224,14 +224,23 @@ class Window(QMainWindow):
         layout = QVBoxLayout()
         layout.setSpacing(12)
         layout.addWidget(config_group)
-        layout.addWidget(connect_button)
+        layout.addWidget(self.connect_button)
         layout.addLayout(controller_layout)
         layout.addLayout(robot_control_layout)
         return layout
 
     def _update_controllers_enabled(self):
-        for i, c in enumerate(self.th.get_controllable_controllers()):
+        controllable_controllers = self.th.get_controllable_controllers()
+        for i, c in enumerate(controllable_controllers):
             self.controller_dropdown.model().item(i).setEnabled(c)
+        
+        for i, c in enumerate(self.th.get_controller_names()):
+            if c == "Robot" and controllable_controllers[i]:
+                # the robot controller is enabled, therefore the robot is connected
+                # and we should disable the connect button (connecting twice breaks
+                # things)
+                self.connect_button.setText("Connected")
+                self.connect_button.setEnabled(False)
 
     def _select_calibration_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Calibration Folder")
