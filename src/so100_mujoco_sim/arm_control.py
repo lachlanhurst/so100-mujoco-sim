@@ -1,4 +1,5 @@
 import mujoco
+import time
 import torch
 from dataclasses import dataclass
 from lerobot.common.robot_devices.robots.utils import make_robot_from_config
@@ -58,6 +59,7 @@ class ArmController:
 
         self._primary = False
         self._name = "Base"
+        self._controllable = False
 
     @property
     def primary(self) -> bool:
@@ -71,6 +73,15 @@ class ArmController:
     @property
     def name(self) -> str:
         return self._name
+
+    @property
+    def controllable(self) -> bool:
+        """
+        Returns True if the controller is in a state where
+        if can be used to drive the other controllers.
+        eg; real robot controller would be false until connected
+        """
+        return self._controllable
 
     def set_joint_actual_position(self, joint_name: str, position: float):
         for i, joint in enumerate(self.joints):
@@ -140,6 +151,8 @@ class UiArmController(ArmController):
         super().__init__(joints)
 
         self._name = "User Interface"
+        # will always be controllable
+        self._controllable = True
         self.set_positions_callback = set_positions_callback
 
     def set_positions(self):
@@ -158,6 +171,7 @@ class MujocoArmController(ArmController):
         self.data = data
 
         self._name = "Simulation"
+        self._controllable = False
 
     def update(self):
         super().update()
@@ -195,7 +209,7 @@ class So100ArmController(ArmController):
         ]
         super().__init__(joints)
 
-        self._name = "Real"
+        self._name = "Robot"
 
     def connect(self, port: str, calibration_dir: str) -> None:
         # Create the So100 robot from the configuration
@@ -203,7 +217,21 @@ class So100ArmController(ArmController):
             So100Config(calibration_dir=calibration_dir, port=port)
         )
         robot.connect()
+        # small delay to allow the robot to connect
+        time.sleep(0.2)
         self.robot = robot
+
+    def is_connected(self) -> bool:
+        """
+        Checks if the robot is connected
+        """
+        if self.robot is None:
+            return False
+        return self.robot.is_connected
+
+    @property
+    def controllable(self) -> bool:
+        return self.is_connected()
 
     def update(self):
         super().update()

@@ -113,6 +113,7 @@ class Viewport(QOpenGLWindow):
 class UpdateSimThread(QThread):
 
     update_ui_joint_values = Signal(list)
+    update_controller_enabled_states = Signal()
 
     def __init__(self, model: mujoco.MjModel, data: mujoco.MjData, parent=None) -> None:
         super().__init__(parent)
@@ -193,6 +194,9 @@ class UpdateSimThread(QThread):
     def get_controller_names(self) -> str:
         return [c.name for c in self.arm_controllers]
 
+    def get_controllable_controllers(self) -> list[bool]:
+        return [c.controllable for c in self.arm_controllers]
+
     def get_primary_controller_index(self) -> int:
         for i, c in enumerate(self.arm_controllers):
             if c.primary:
@@ -221,6 +225,8 @@ class UpdateSimThread(QThread):
         # this updates the ui, but also raises change events that causes the mujoco
         # model to update
         self.update_ui_joint_values.emit(self.real_controller.joint_output_positions)
+        # raise event to tell UI that the real robot controller can be enabled
+        self.update_controller_enabled_states.emit()
 
     def _update_ui(self) -> None:
         self.update_ui_joint_values.emit(self.ui_controller.joint_set_positions)
@@ -307,6 +313,7 @@ class Window(QMainWindow):
 
         self.th = UpdateSimThread(self.model, self.data, self)
         self.th.update_ui_joint_values.connect(self._update_ui_joint_values)
+        self.th.update_controller_enabled_states.connect(self._update_controllers_enabled)
 
         layout_right_side = QVBoxLayout()
         layout_right_side.setSpacing(8)
@@ -391,6 +398,7 @@ class Window(QMainWindow):
         self.controller_dropdown.addItems(self.th.get_controller_names())
         self.controller_dropdown.setCurrentIndex(self.th.get_primary_controller_index())
         self.controller_dropdown.currentIndexChanged.connect(self._set_primary_controller)
+        self._update_controllers_enabled()
         controller_layout.addWidget(self.controller_dropdown)
         controller_layout.setStretch(1,1)
 
@@ -421,6 +429,10 @@ class Window(QMainWindow):
         layout.addLayout(controller_layout)
         layout.addLayout(robot_control_layout)
         return layout
+
+    def _update_controllers_enabled(self):
+        for i, c in enumerate(self.th.get_controllable_controllers()):
+            self.controller_dropdown.model().item(i).setEnabled(c)
 
     def _select_calibration_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Calibration Folder")
