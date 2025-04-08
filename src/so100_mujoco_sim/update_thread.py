@@ -16,6 +16,7 @@ class UpdateThread(QThread):
 
     update_ui_joint_values = Signal(list)
     update_controller_enabled_states = Signal()
+    update_primary_controller = Signal(str)
 
     def __init__(self, model: mujoco.MjModel, data: mujoco.MjData, parent=None) -> None:
         super().__init__(parent)
@@ -61,6 +62,9 @@ class UpdateThread(QThread):
 
                     if self.get_primary_controller_index() != self._primary_controller_index:
                         self._set_primary_controller_index(self._primary_controller_index)
+                        self.update_primary_controller.emit(
+                            self.arm_controllers[self._primary_controller_index].name
+                        )
 
                     pc = self.get_primary_controller()
                     for ac in self.arm_controllers:

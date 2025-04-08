@@ -101,6 +101,7 @@ class Window(QMainWindow):
         self.th = UpdateThread(self.model, self.data, self)
         self.th.update_ui_joint_values.connect(self._update_ui_joint_values)
         self.th.update_controller_enabled_states.connect(self._update_controllers_enabled)
+        self.th.update_primary_controller.connect(self._primary_controller_changed)
 
         layout_right_side = QVBoxLayout()
         layout_right_side.setSpacing(8)
@@ -140,6 +141,17 @@ class Window(QMainWindow):
 
         for i, jw in enumerate(self.joint_widgets):
             jw.setValue(joint_vals[i])
+
+    def _set_enable_ui_joint_controls(self, enabled: bool):
+        for jw in self.joint_widgets:
+            jw.slider.setEnabled(enabled)
+
+    @Slot(str)
+    def _primary_controller_changed(self, name: str):
+        # disable or enable the joint controls depending on if the UI controller
+        # is primary
+        # should probably get this name from the controller itself
+        self._set_enable_ui_joint_controls(name == "User Interface")
 
     def create_right_side_control(self) -> QLayout:
 
