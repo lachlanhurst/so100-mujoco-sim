@@ -132,10 +132,10 @@ class Window(QMainWindow):
             f"Simulation time: {self.data.time:.0f}s"
         )
 
-        for i in range(len(self.joints)):
-            pos = self.th.mujoco_controller.joint_actual_positions[i]
-            jw = self.joint_widgets[i]
-            jw.set_actual_position(pos)
+        # for i in range(len(self.joints)):
+        #     pos = self.th.mujoco_controller.joint_actual_positions[i]
+        #     jw = self.joint_widgets[i]
+        #     jw.set_actual_position(pos)
 
     @Slot(list)
     def _update_ui_joint_values(self, joint_vals: list):
