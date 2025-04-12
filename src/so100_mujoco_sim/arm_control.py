@@ -203,6 +203,10 @@ class PlaybackRecordController(ArmController):
         elif self.state == PlaybackRecordState.PLAYING and state == PlaybackRecordState.STOPPED:
             # if we stop playing, then we need to reset the index
             self.playback_index = 0
+        elif self.state == PlaybackRecordState.STOPPED and state == PlaybackRecordState.RECORDING:
+            self.playback_index = 0
+            self.recorded_joint_positions = []
+            self.extra_joint_positions = []
 
         self.state = state
 
