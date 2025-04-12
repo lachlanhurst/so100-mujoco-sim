@@ -2,7 +2,8 @@ import pathlib
 
 import mujoco
 import numpy as np
-from PySide6.QtCore import QSettings, Qt, Signal, Slot
+import qtawesome as qta
+from PySide6.QtCore import QSettings, Qt, Signal, Slot, QSize
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QFileDialog, QGroupBox,
@@ -166,7 +167,8 @@ class Window(QMainWindow):
         calibration_layout.setSpacing(4)
         self.calibration_folder_edit = QLineEdit()
         self.calibration_folder_edit.setPlaceholderText("Select folder...")
-        calibration_button = QPushButton("Browse")
+        calibration_folder_open_icon = qta.icon("fa6.folder-open")
+        calibration_button = QPushButton(calibration_folder_open_icon, "")
         calibration_button.clicked.connect(self._select_calibration_folder)
         calibration_layout.addWidget(self.calibration_folder_edit)
         calibration_layout.addWidget(calibration_button)

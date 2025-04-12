@@ -17,6 +17,7 @@ platforms = ["osx-64", "osx-arm64", "win-64"]
 so100_mujoco_sim = { path = ".", editable = true }
 mujoco = ">=3.2.7,<4"
 PySide6 = ">=6.8.2,<6.9"
+QtAwesome = ">=1.4.0,<1.5"
 urdf2mjcf = ">=0.2.17"
 draccus = ">=0.10.0,<0.11"
 feetech-servo-sdk = ">=1.0.0"
@@ -24,6 +25,7 @@ feetech-servo-sdk = ">=1.0.0"
 [tool.pixi.tasks]
 download = { cmd = "python scripts/download.py" }
 simulate = { cmd = "python src/so100_mujoco_sim/simulate.py" }
+qta-browser = { cmd = "qta-browser" }
 
 [tool.pixi.dependencies]
 requests = ">=2.32.3,<3"
