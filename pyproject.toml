@@ -21,11 +21,19 @@ QtAwesome = ">=1.4.0,<1.5"
 urdf2mjcf = ">=0.2.17"
 draccus = ">=0.10.0,<0.11"
 feetech-servo-sdk = ">=1.0.0"
+pytest = ">=8.3.5,<9"
+
+[tool.pytest.ini_options]
+pythonpath = [
+  ".",
+  "src"
+]
 
 [tool.pixi.tasks]
 download = { cmd = "python scripts/download.py" }
 simulate = { cmd = "python src/so100_mujoco_sim/simulate.py" }
 qta-browser = { cmd = "qta-browser" }
+test = { cmd = "python -m pytest" }
 
 [tool.pixi.dependencies]
 requests = ">=2.32.3,<3"

@@ -182,11 +182,28 @@ class PlaybackRecordController(ArmController):
         self._controllable = True
         
         self.playback_index = 0
-
+        # last position of the robot arm, it may not be the last recorded position
+        # so track this separately
+        self.last_position: list[float] = []
         self.recorded_joint_positions: list[list[float]] = []
+        self.extra_joint_positions: list[list[float]] = []
         self.state = PlaybackRecordState.STOPPED
 
     def set_state(self, state: PlaybackRecordState) -> None:
+        if self.state == PlaybackRecordState.STOPPED and state == PlaybackRecordState.PLAYING:
+            # then we've started playing
+            # the current position of the robot may be a fair bit different to the start
+            # of the recording, so use the extra positions to get there slowly (instead of jumping)
+            back_to_start = calculate_transition_joint_positions(
+                self.last_position,
+                self.recorded_joint_positions[0],
+                0.03
+            )
+            self.extra_joint_positions = back_to_start
+        elif self.state == PlaybackRecordState.PLAYING and state == PlaybackRecordState.STOPPED:
+            # if we stop playing, then we need to reset the index
+            self.playback_index = 0
+
         self.state = state
 
     @property
@@ -197,13 +214,29 @@ class PlaybackRecordController(ArmController):
     def update(self):
         super().update()
         if self.state == PlaybackRecordState.PLAYING:
+            if len(self.extra_joint_positions) > 0:
+                joint_positions = self.extra_joint_positions.pop(0)
+                self.joint_output_positions = list(joint_positions)
+                self.joint_set_positions = list(joint_positions)
+                self.last_position = list(self.joint_set_positions)
+                return
+
             if self.playback_index >= len(self.recorded_joint_positions):
+                back_to_beginning_steps = calculate_transition_joint_positions(
+                    self.last_position,
+                    self.recorded_joint_positions[0],
+                    0.03
+                )
+                self.extra_joint_positions = back_to_beginning_steps
                 self.playback_index = 0
             joint_positions = self.recorded_joint_positions[self.playback_index]
             self.joint_output_positions = list(joint_positions)
+            self.joint_set_positions = list(joint_positions)
+            self.last_position = list(self.joint_set_positions)
             self.playback_index += 1
 
     def set_positions(self):
+        self.last_position = list(self.joint_set_positions)
         if self.state == PlaybackRecordState.RECORDING:
             # record the current joint positions
             self.recorded_joint_positions.append(list(self.joint_set_positions))
@@ -369,3 +402,31 @@ def positions_aligned(a: list[float], b: list[float], tolerance_rad: float = 0.1
         raise ValueError("Lists `a` and `b` must have the same length.")
 
     return all(abs(a[i] - b[i]) <= tolerance_rad for i in range(len(a)))
+
+
+def calculate_transition_joint_positions(start_positions: list[float], end_positions: list[float], max_joint_change: float) -> list[list[float]]:
+    """
+    Calculate the joint positions for a transition between start and end positions.
+
+    :param start_positions: List of float values representing the starting joint positions.
+    :param end_positions: List of float values representing the ending joint positions.
+    :param max_joint_change: The maximum change allowed for each joint in radians.
+    :return: A list of lists, where each inner list represents a joint position at a step in the transition.
+    """
+    if len(start_positions) != len(end_positions):
+        raise ValueError("Start and end positions must have the same length.")
+
+    num_steps = max(abs(end - start) // max_joint_change for start, end in zip(start_positions, end_positions))
+    joint_positions = []
+    if num_steps == 0:
+        # then somehow we are already at the end position
+        return []
+
+    for step in range(int(num_steps) + 1):
+        interpolated_positions = [
+            start + (end - start) * (step / num_steps)
+            for start, end in zip(start_positions, end_positions)
+        ]
+        joint_positions.append(interpolated_positions)
+
+    return joint_positions
