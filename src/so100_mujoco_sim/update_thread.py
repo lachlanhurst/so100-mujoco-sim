@@ -46,6 +46,7 @@ class UpdateThread(QThread):
         # reset the simulation timer
         self.reset()
 
+        self._do_connection = False
         self.running = True
 
     @property
@@ -90,6 +91,8 @@ class UpdateThread(QThread):
                 # step the simulation
                 mujoco.mj_step(self.model, self.data)
 
+                if self._do_connection:
+                    self._connect_real_robot()
             else:
                 time.sleep(0.00001)
 
@@ -133,7 +136,15 @@ class UpdateThread(QThread):
                 c.primary = False
 
     def connect_real_robot(self, usb_port: str, calibration_folder: str) -> None:
-        self.real_controller.connect(usb_port, calibration_folder)
+        self._usb_port = usb_port
+        self._calibration_folder = calibration_folder
+        self._do_connection = True
+
+    def _connect_real_robot(self) -> None:
+        if not self._do_connection:
+            return
+        self._do_connection = False
+        self.real_controller.connect(self._usb_port, self._calibration_folder)
         self.real_controller.update()
 
         # this updates the ui, but also raises change events that causes the mujoco
