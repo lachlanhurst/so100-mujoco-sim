@@ -4,7 +4,7 @@ import mujoco
 import numpy as np
 import qtawesome as qta
 from PySide6.QtCore import QSettings, Qt, Signal, Slot, QSize
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QGuiApplication, QFont
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QFileDialog, QGroupBox,
     QHBoxLayout, QLabel, QLayout, QLineEdit,
@@ -104,6 +104,7 @@ class Window(QMainWindow):
         self.th.update_ui_joint_values.connect(self._update_ui_joint_values)
         self.th.update_controller_enabled_states.connect(self._update_controllers_enabled)
         self.th.update_primary_controller.connect(self._primary_controller_changed)
+        self.th.update_ui_recorded_steps.connect(self._update_playback_recorded_steps)
 
         layout_right_side = QVBoxLayout()
         layout_right_side.setSpacing(8)
@@ -219,29 +220,43 @@ class Window(QMainWindow):
         controls_layout.setSpacing(4)
         record_icon = qta.icon('mdi.record', options=[{'color': 'red'}])
         self.record_button = QPushButton(record_icon, "")
-        self.record_button.setIconSize(QSize(48, 48))
+        self.record_button.setIconSize(QSize(38, 38))
         self.record_button.clicked.connect(
             lambda: self._playback_record_button_clicked(PlaybackRecordState.RECORDING)
         )
 
         play_icon = qta.icon('mdi.play', options=[{'color': 'green'}])
         self.play_button = QPushButton(play_icon,"")
-        self.play_button.setIconSize(QSize(48, 48))
+        self.play_button.setIconSize(QSize(38, 38))
         self.play_button.clicked.connect(
             lambda: self._playback_record_button_clicked(PlaybackRecordState.PLAYING)
         )
 
         stop_icon = qta.icon('mdi.stop')
         self.stop_button = QPushButton(stop_icon, "")
-        self.stop_button.setIconSize(QSize(48, 48))
+        self.stop_button.setIconSize(QSize(38, 38))
         self.stop_button.clicked.connect(
             lambda: self._playback_record_button_clicked(PlaybackRecordState.STOPPED)
         )
+
+        steps_layout = QVBoxLayout()
+        steps_layout.setSpacing(0)
+        steps_layout.addWidget(QLabel("Step:"))
+        self.playback_steps_edit = QLineEdit()
+        self.playback_steps_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.playback_steps_edit.setMaximumWidth(100)
+        self.playback_steps_edit.setEnabled(False)
+        self.playback_steps_edit.setText("0/0")
+        text_font = QFont("monospace")
+        text_font.setStyleHint(QFont.StyleHint.Monospace) 
+        self.playback_steps_edit.setFont(text_font)
+        steps_layout.addWidget(self.playback_steps_edit)
 
         controls_layout.addWidget(self.record_button)
         controls_layout.addWidget(self.play_button)
         controls_layout.addWidget(self.stop_button)
         controls_layout.addStretch()
+        controls_layout.addLayout(steps_layout)
         layout.addLayout(controls_layout)
 
         playback_file_layout = QVBoxLayout()
@@ -286,6 +301,9 @@ class Window(QMainWindow):
         if state == PlaybackRecordState.PLAYING:
             playback_record_controller_index = self.controller_dropdown.findText("Playback/Record")
             self.controller_dropdown.setCurrentIndex(playback_record_controller_index)
+
+    def _update_playback_recorded_steps(self, steps: int, current_step: int) -> None:
+        self.playback_steps_edit.setText(f"{current_step}/{steps}")
 
     def _select_playback_file(self):
         file_path, _ = QFileDialog.getSaveFileName(

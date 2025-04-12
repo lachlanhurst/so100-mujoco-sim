@@ -174,13 +174,13 @@ class PlaybackRecordController(ArmController):
     of the controller (set_state).
     """
 
-    def __init__(self, joints: list[Joint]):
+    def __init__(self, joints: list[Joint], recorded_steps_callback: Callable | None = None):
         super().__init__(joints)
 
         self._name = "Playback/Record"
         # will always be controllable
         self._controllable = True
-        
+        self._recorded_steps_callback = recorded_steps_callback
         self.playback_index = 0
         # last position of the robot arm, it may not be the last recorded position
         # so track this separately
@@ -218,6 +218,8 @@ class PlaybackRecordController(ArmController):
     def update(self):
         super().update()
         if self.state == PlaybackRecordState.PLAYING:
+            if self._recorded_steps_callback is not None:
+                self._recorded_steps_callback()
             if len(self.extra_joint_positions) > 0:
                 joint_positions = self.extra_joint_positions.pop(0)
                 self.joint_output_positions = list(joint_positions)
@@ -244,6 +246,8 @@ class PlaybackRecordController(ArmController):
         if self.state == PlaybackRecordState.RECORDING:
             # record the current joint positions
             self.recorded_joint_positions.append(list(self.joint_set_positions))
+            if self._recorded_steps_callback is not None:
+                self._recorded_steps_callback()
 
 
 class MujocoArmController(ArmController):

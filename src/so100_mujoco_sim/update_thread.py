@@ -17,6 +17,7 @@ from so100_mujoco_sim.arm_control import (
 class UpdateThread(QThread):
 
     update_ui_joint_values = Signal(list)
+    update_ui_recorded_steps = Signal(int, int)
     update_controller_enabled_states = Signal()
     update_primary_controller = Signal(str)
 
@@ -31,7 +32,10 @@ class UpdateThread(QThread):
         self.ui_controller.primary = True
         self._primary_controller_index = 0
         self.real_controller = So100ArmController()
-        self.playback_record_controller = PlaybackRecordController(self.mujoco_controller.joints)
+        self.playback_record_controller = PlaybackRecordController(
+            self.mujoco_controller.joints,
+            self._update_ui_recorded_steps
+        )
 
         self.arm_controllers: list[ArmController] = []
         self.arm_controllers.append(self.ui_controller)
@@ -143,3 +147,9 @@ class UpdateThread(QThread):
 
     def set_playback_record_state(self, state: PlaybackRecordState) -> None:
         self.playback_record_controller.set_state(state)
+
+    def _update_ui_recorded_steps(self) -> None:
+        self.update_ui_recorded_steps.emit(
+            len(self.playback_record_controller.recorded_joint_positions),
+            self.playback_record_controller.playback_index
+        )
