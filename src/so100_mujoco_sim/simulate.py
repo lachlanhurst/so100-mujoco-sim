@@ -2,6 +2,7 @@ import pathlib
 
 import mujoco
 import numpy as np
+import os
 import qtawesome as qta
 from PySide6.QtCore import QSettings, Qt, Signal, Slot, QSize
 from PySide6.QtGui import QGuiApplication, QFont
@@ -92,7 +93,6 @@ class Window(QMainWindow):
         self.scn.flags[mujoco.mjtRndFlag.mjRND_REFLECTION] = True
         self.viewport = Viewport(self.model, self.data, self.cam, self.opt, self.scn)
         self.viewport.setScreenScale(QGuiApplication.instance().primaryScreen().devicePixelRatio())
-        self.viewport.updateRuntime.connect(self.show_runtime)
 
         layout = QHBoxLayout()
         layout.setSpacing(0)
@@ -125,23 +125,13 @@ class Window(QMainWindow):
         # Restore saved settings
         self.restore_settings()
 
-    @Slot(float)
-    def show_runtime(self, fps: float):
         self.statusBar().showMessage(
-            f"Average runtime: {fps:.0e}s\t"
-            f"Simulation time: {self.data.time:.0f}s"
+            f"Ready",
+            1000
         )
-
-        # for i in range(len(self.joints)):
-        #     pos = self.th.mujoco_controller.joint_actual_positions[i]
-        #     jw = self.joint_widgets[i]
-        #     jw.set_actual_position(pos)
 
     @Slot(list)
     def _update_ui_joint_values(self, joint_vals: list):
-        # print("joint_vals")
-        # print(joint_vals)
-
         for i, jw in enumerate(self.joint_widgets):
             jw.setValue(joint_vals[i])
 
@@ -155,6 +145,11 @@ class Window(QMainWindow):
         # is primary
         # should probably get this name from the controller itself
         self._set_enable_ui_joint_controls(name == "User Interface")
+
+        self.statusBar().showMessage(
+            f"Now controlling with {name}",
+            2000
+        )
 
     def _create_config_group(self) -> QGroupBox:
         # Add the Config group box
@@ -297,6 +292,11 @@ class Window(QMainWindow):
         if file_path:
             self.th.save_playback_file(file_path)
 
+            self.statusBar().showMessage(
+                f"Playback file '{os.path.basename(file_path)}' saved successfully.",
+                2000
+            )
+
     def _load_playback_file(self):
         file_path = self.playback_file_edit.text()
         if file_path:
@@ -307,6 +307,10 @@ class Window(QMainWindow):
                 )
                 return
             self.th.load_playback_file(file_path)
+            self.statusBar().showMessage(
+                f"Playback file '{os.path.basename(file_path)}' loaded successfully.",
+                2000
+            )
         self.th.set_playback_record_state(PlaybackRecordState.STOPPED)
 
     def _update_playback_record_buttons(self, state: PlaybackRecordState) -> None:
@@ -376,7 +380,7 @@ class Window(QMainWindow):
         controllable_controllers = self.th.get_controllable_controllers()
         for i, c in enumerate(controllable_controllers):
             self.controller_dropdown.model().item(i).setEnabled(c)
-        
+
         for i, c in enumerate(self.th.get_controller_names()):
             if c == "Robot" and controllable_controllers[i]:
                 # the robot controller is enabled, therefore the robot is connected
@@ -384,6 +388,11 @@ class Window(QMainWindow):
                 # things)
                 self.connect_button.setText("Connected")
                 self.connect_button.setEnabled(False)
+
+                self.statusBar().showMessage(
+                    f"so100 connected",
+                    2000
+                )
 
     def _select_calibration_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Calibration Folder")
