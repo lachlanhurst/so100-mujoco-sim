@@ -209,6 +209,64 @@ class Window(QMainWindow):
 
         return robot_control_group
 
+    def _create_playback_and_record_group(self) -> QGroupBox:
+        # Add the Playback and Record group box
+        layout = QVBoxLayout()
+        layout.setSpacing(8)
+
+        controls_layout = QHBoxLayout()
+        controls_layout.setSpacing(4)
+        record_icon = qta.icon('mdi.record', options=[{'color': 'red'}])
+        record_button = QPushButton(record_icon, "")
+        record_button.setIconSize(QSize(48, 48))
+        # record_button.setEnabled(False)
+
+        play_icon = qta.icon('mdi.play', options=[{'color': 'green'}])
+        play_button = QPushButton(play_icon,"")
+        play_button.setIconSize(QSize(48, 48))
+        # play_button.setEnabled(False)
+
+        stop_icon = qta.icon('mdi.stop')
+        stop_button = QPushButton(stop_icon, "")
+        stop_button.setIconSize(QSize(48, 48))
+        # stop_button.setEnabled(False)
+
+        controls_layout.addWidget(record_button)
+        controls_layout.addWidget(play_button)
+        controls_layout.addWidget(stop_button)
+        controls_layout.addStretch()
+        layout.addLayout(controls_layout)
+
+        playback_file_layout = QVBoxLayout()
+        playback_file_layout.setSpacing(0)
+        playback_file_layout.addWidget(QLabel("Playback File:"))
+        playback_file_edit_layout = QHBoxLayout()
+
+        playback_file_edit_layout.setSpacing(4)
+        self.playback_file_edit = QLineEdit()
+        self.playback_file_edit.setPlaceholderText("Select file...")
+        playback_file_open_icon = qta.icon("fa6.folder-open")
+        playback_file_button = QPushButton(playback_file_open_icon, "")
+        playback_file_button.clicked.connect(self._select_playback_file)
+        playback_file_edit_layout.addWidget(self.playback_file_edit)
+        playback_file_edit_layout.addWidget(playback_file_button)
+        playback_file_layout.addLayout(playback_file_edit_layout)
+        layout.addLayout(playback_file_layout)
+
+        group = QGroupBox("Playback and Record")
+        group.setLayout(layout)
+        return group
+
+    def _select_playback_file(self):
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Select or Create Playback File",
+            "",
+            "CSV Files (*.csv);;All Files (*)"
+        )
+        if file_path:
+            self.playback_file_edit.setText(file_path)
+
     def create_right_side_control(self) -> QLayout:
         self.connect_button = QPushButton("Connect")
         self.connect_button.clicked.connect(self._connect_robot)
@@ -235,6 +293,7 @@ class Window(QMainWindow):
         layout.addWidget(self.connect_button)
         layout.addLayout(controller_layout)
         layout.addLayout(robot_control_layout)
+        layout.addWidget(self._create_playback_and_record_group())
         return layout
 
     def _update_controllers_enabled(self):
