@@ -6,6 +6,7 @@ from enum import Enum
 from lerobot.common.robot_devices.robots.utils import make_robot_from_config
 from lerobot.common.robot_devices.motors.feetech import FeetechMotorsBus, TorqueMode
 from typing import Callable
+import csv
 
 from configs.so100 import So100Config
 
@@ -249,6 +250,31 @@ class PlaybackRecordController(ArmController):
             if self._recorded_steps_callback is not None:
                 self._recorded_steps_callback()
 
+    def save_playback_file(self, file_path: str) -> None:
+        """
+        Saves the recorded_joint_positions to a CSV file.
+
+        :param file_path: Path to the CSV file where the positions will be saved.
+        """
+        with open(file_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerows(self.recorded_joint_positions)
+
+    def load_playback_file(self, file_path: str) -> None:
+        """
+        Loads recorded_joint_positions from a CSV file.
+
+        :param file_path: Path to the CSV file to load the positions from.
+        """
+        with open(file_path, mode='r') as file:
+            reader = csv.reader(file)
+            self.recorded_joint_positions = [
+                [float(value) for value in row] for row in reader
+            ]
+
+        # reset the playback index to the start
+        self.playback_index = 0
+        self.extra_joint_positions = []
 
 class MujocoArmController(ArmController):
     """

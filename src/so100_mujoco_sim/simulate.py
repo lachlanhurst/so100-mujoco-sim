@@ -263,15 +263,26 @@ class Window(QMainWindow):
         playback_file_layout.setSpacing(0)
         playback_file_layout.addWidget(QLabel("Playback File:"))
         playback_file_edit_layout = QHBoxLayout()
-
         playback_file_edit_layout.setSpacing(4)
+
+        self.playback_file_load = QPushButton("Load")
+        self.playback_file_load.setMaximumWidth(50)
+        self.playback_file_load.clicked.connect(self._load_playback_file)
+        self.playback_file_save = QPushButton("Save")
+        self.playback_file_save.setMaximumWidth(50)
+        self.playback_file_save.clicked.connect(self._save_playback_file)
+
         self.playback_file_edit = QLineEdit()
         self.playback_file_edit.setPlaceholderText("Select file...")
         playback_file_open_icon = qta.icon("fa6.folder-open")
         playback_file_button = QPushButton(playback_file_open_icon, "")
         playback_file_button.clicked.connect(self._select_playback_file)
+        
+        playback_file_edit_layout.addWidget(self.playback_file_load)
+        playback_file_edit_layout.addWidget(self.playback_file_save)
         playback_file_edit_layout.addWidget(self.playback_file_edit)
         playback_file_edit_layout.addWidget(playback_file_button)
+        playback_file_edit_layout.setStretch(2,1)
         playback_file_layout.addLayout(playback_file_edit_layout)
         layout.addLayout(playback_file_layout)
 
@@ -280,6 +291,23 @@ class Window(QMainWindow):
         group = QGroupBox("Playback and Record")
         group.setLayout(layout)
         return group
+
+    def _save_playback_file(self):
+        file_path = self.playback_file_edit.text()
+        if file_path:
+            self.th.save_playback_file(file_path)
+
+    def _load_playback_file(self):
+        file_path = self.playback_file_edit.text()
+        if file_path:
+            if not pathlib.Path(file_path).is_file():
+                self.show_warning_dialog(
+                    "File Not Found",
+                    f"The file '{file_path}' does not exist. Please select a valid file."
+                )
+                return
+            self.th.load_playback_file(file_path)
+        self.th.set_playback_record_state(PlaybackRecordState.STOPPED)
 
     def _update_playback_record_buttons(self, state: PlaybackRecordState) -> None:
         if state == PlaybackRecordState.RECORDING:
@@ -372,14 +400,17 @@ class Window(QMainWindow):
         """Restore saved settings for calibration folder and USB port."""
         calibration_folder = self.settings.value("calibration_folder", "")
         usb_port = self.settings.value("usb_port", "")
+        playback_file = self.settings.value("playback_file", "")
 
         self.calibration_folder_edit.setText(calibration_folder)
         self.usb_port_edit.setText(usb_port)
+        self.playback_file_edit.setText(playback_file)
 
     def closeEvent(self, event):
         """Save settings when the application is closed."""
         self.settings.setValue("calibration_folder", self.calibration_folder_edit.text())
         self.settings.setValue("usb_port", self.usb_port_edit.text())
+        self.settings.setValue("playback_file", self.playback_file_edit.text())
         super().closeEvent(event)
 
     def _joint_position_changed(self, joint: Joint, position: float) -> None:

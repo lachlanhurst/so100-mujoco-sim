@@ -46,6 +46,10 @@ class UpdateThread(QThread):
         # reset the simulation timer
         self.reset()
 
+        self._playback_file = None
+        self._playback_file_save = False
+        self._playback_file_load = False
+
         self._do_connection = False
         self.running = True
 
@@ -91,8 +95,14 @@ class UpdateThread(QThread):
                 # step the simulation
                 mujoco.mj_step(self.model, self.data)
 
+                # here's where we check if there's something that was requested
+                # to be done from the UI thread, and do it
                 if self._do_connection:
                     self._connect_real_robot()
+                if self._playback_file_save:
+                    self._save_playback_file()
+                if self._playback_file_load:
+                    self._load_playback_file()
             else:
                 time.sleep(0.00001)
 
@@ -164,3 +174,26 @@ class UpdateThread(QThread):
             len(self.playback_record_controller.recorded_joint_positions),
             self.playback_record_controller.playback_index
         )
+
+    def save_playback_file(self, file_name: str) -> None:
+        self._playback_file = file_name
+        self._playback_file_save = True
+
+    def _save_playback_file(self) -> None:
+        if self._playback_file_save:
+            self.playback_record_controller.save_playback_file(self._playback_file)
+            self._playback_file_save = False
+
+    def load_playback_file(self, file_name: str) -> None:
+        self._playback_file = file_name
+        self._playback_file_load = True
+
+    def _load_playback_file(self) -> None:
+        if self._playback_file_load:
+            self.playback_record_controller.load_playback_file(self._playback_file)
+            self._playback_file_load = False
+
+            self.update_ui_recorded_steps.emit(
+                len(self.playback_record_controller.recorded_joint_positions),
+                self.playback_record_controller.playback_index
+            )
