@@ -2,6 +2,7 @@ import mujoco
 import time
 import torch
 from dataclasses import dataclass
+from enum import Enum
 from lerobot.common.robot_devices.robots.utils import make_robot_from_config
 from lerobot.common.robot_devices.motors.feetech import FeetechMotorsBus, TorqueMode
 from typing import Callable
@@ -158,6 +159,54 @@ class UiArmController(ArmController):
     def set_positions(self):
         if self.set_positions_callback is not None:
             self.set_positions_callback()
+
+
+class PlaybackRecordState(Enum):
+    PLAYING = 1
+    RECORDING = 2
+    STOPPED = 3
+
+
+class PlaybackRecordController(ArmController):
+    """
+    Controls robot joint positions based on existing recording, or records the
+    joint positions for later playback. This is determined by the state
+    of the controller (set_state).
+    """
+
+    def __init__(self, joints: list[Joint]):
+        super().__init__(joints)
+
+        self._name = "Playback/Record"
+        # will always be controllable
+        self._controllable = True
+        
+        self.playback_index = 0
+
+        self.recorded_joint_positions: list[list[float]] = []
+        self.state = PlaybackRecordState.STOPPED
+
+    def set_state(self, state: PlaybackRecordState) -> None:
+        self.state = state
+
+    @property
+    def controllable(self) -> bool:
+        # can't playback unless we have something recorded
+        return len(self.recorded_joint_positions) > 0
+
+    def update(self):
+        super().update()
+        if self.state == PlaybackRecordState.PLAYING:
+            if self.playback_index >= len(self.recorded_joint_positions):
+                self.playback_index = 0
+            joint_positions = self.recorded_joint_positions[self.playback_index]
+            self.joint_output_positions = list(joint_positions)
+            self.playback_index += 1
+
+    def set_positions(self):
+        if self.state == PlaybackRecordState.RECORDING:
+            # record the current joint positions
+            self.recorded_joint_positions.append(list(self.joint_set_positions))
 
 
 class MujocoArmController(ArmController):

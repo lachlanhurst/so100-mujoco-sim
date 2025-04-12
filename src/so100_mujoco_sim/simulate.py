@@ -14,7 +14,8 @@ from PySide6.QtWidgets import (
 
 from so100_mujoco_sim.arm_control import (
     Joint,
-    joints_from_model
+    joints_from_model,
+    PlaybackRecordState
 )
 from so100_mujoco_sim.mujoco_viewport import Viewport
 from so100_mujoco_sim.update_thread import UpdateThread
@@ -217,23 +218,29 @@ class Window(QMainWindow):
         controls_layout = QHBoxLayout()
         controls_layout.setSpacing(4)
         record_icon = qta.icon('mdi.record', options=[{'color': 'red'}])
-        record_button = QPushButton(record_icon, "")
-        record_button.setIconSize(QSize(48, 48))
-        # record_button.setEnabled(False)
+        self.record_button = QPushButton(record_icon, "")
+        self.record_button.setIconSize(QSize(48, 48))
+        self.record_button.clicked.connect(
+            lambda: self._playback_record_button_clicked(PlaybackRecordState.RECORDING)
+        )
 
         play_icon = qta.icon('mdi.play', options=[{'color': 'green'}])
-        play_button = QPushButton(play_icon,"")
-        play_button.setIconSize(QSize(48, 48))
-        # play_button.setEnabled(False)
+        self.play_button = QPushButton(play_icon,"")
+        self.play_button.setIconSize(QSize(48, 48))
+        self.play_button.clicked.connect(
+            lambda: self._playback_record_button_clicked(PlaybackRecordState.PLAYING)
+        )
 
         stop_icon = qta.icon('mdi.stop')
-        stop_button = QPushButton(stop_icon, "")
-        stop_button.setIconSize(QSize(48, 48))
-        # stop_button.setEnabled(False)
+        self.stop_button = QPushButton(stop_icon, "")
+        self.stop_button.setIconSize(QSize(48, 48))
+        self.stop_button.clicked.connect(
+            lambda: self._playback_record_button_clicked(PlaybackRecordState.STOPPED)
+        )
 
-        controls_layout.addWidget(record_button)
-        controls_layout.addWidget(play_button)
-        controls_layout.addWidget(stop_button)
+        controls_layout.addWidget(self.record_button)
+        controls_layout.addWidget(self.play_button)
+        controls_layout.addWidget(self.stop_button)
         controls_layout.addStretch()
         layout.addLayout(controls_layout)
 
@@ -253,9 +260,32 @@ class Window(QMainWindow):
         playback_file_layout.addLayout(playback_file_edit_layout)
         layout.addLayout(playback_file_layout)
 
+        self._update_playback_record_buttons(PlaybackRecordState.STOPPED)
+
         group = QGroupBox("Playback and Record")
         group.setLayout(layout)
         return group
+
+    def _update_playback_record_buttons(self, state: PlaybackRecordState) -> None:
+        if state == PlaybackRecordState.RECORDING:
+            self.record_button.setEnabled(False)
+            self.play_button.setEnabled(False)
+            self.stop_button.setEnabled(True)
+        elif state == PlaybackRecordState.PLAYING:
+            self.record_button.setEnabled(False)
+            self.play_button.setEnabled(False)
+            self.stop_button.setEnabled(True)
+        else:
+            self.record_button.setEnabled(True)
+            self.play_button.setEnabled(True)
+            self.stop_button.setEnabled(False)
+
+    def _playback_record_button_clicked(self, state: PlaybackRecordState) -> None:
+        self._update_playback_record_buttons(state)
+        self.th.set_playback_record_state(state)
+        if state == PlaybackRecordState.PLAYING:
+            playback_record_controller_index = self.controller_dropdown.findText("Playback/Record")
+            self.controller_dropdown.setCurrentIndex(playback_record_controller_index)
 
     def _select_playback_file(self):
         file_path, _ = QFileDialog.getSaveFileName(

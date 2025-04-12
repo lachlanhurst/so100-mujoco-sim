@@ -7,6 +7,8 @@ from so100_mujoco_sim.arm_control import (
     ArmController,
     MujocoArmController,
     So100ArmController,
+    PlaybackRecordController,
+    PlaybackRecordState,
     UiArmController,
     update_from_controller
 )
@@ -29,11 +31,13 @@ class UpdateThread(QThread):
         self.ui_controller.primary = True
         self._primary_controller_index = 0
         self.real_controller = So100ArmController()
+        self.playback_record_controller = PlaybackRecordController(self.mujoco_controller.joints)
 
         self.arm_controllers: list[ArmController] = []
         self.arm_controllers.append(self.ui_controller)
         self.arm_controllers.append(self.mujoco_controller)
         self.arm_controllers.append(self.real_controller)
+        self.arm_controllers.append(self.playback_record_controller)
 
         # reset the simulation timer
         self.reset()
@@ -136,3 +140,6 @@ class UpdateThread(QThread):
 
     def _update_ui(self) -> None:
         self.update_ui_joint_values.emit(self.ui_controller.joint_set_positions)
+
+    def set_playback_record_state(self, state: PlaybackRecordState) -> None:
+        self.playback_record_controller.set_state(state)
