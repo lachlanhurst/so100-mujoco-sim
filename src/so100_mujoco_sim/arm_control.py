@@ -21,6 +21,10 @@ class Joint:
         return f"Joint({self.name}, {self.range})"
 
 
+# this is the prefix we use when attaching the so-arm100 model into
+# the `sim_scene.xml` file.
+MUJOCO_SO100_PREFIX = "so100_"
+
 def joints_from_model(model: mujoco.MjModel) -> list[Joint]:
     """
     Extracts joint details from a mujoco model
@@ -32,13 +36,17 @@ def joints_from_model(model: mujoco.MjModel) -> list[Joint]:
     joint_names = []
     for i in range(num_joints):
         name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_JOINT, i)
-        joint_names.append(name)
+        # there are other  non-so100 joints in the mujoco model
+        # like the block free joints
+        if name.startswith(MUJOCO_SO100_PREFIX):
+            name = name[len(MUJOCO_SO100_PREFIX):]
+            joint_names.append(name)
 
     # get joint ranges
     joint_ranges = model.jnt_range.reshape(-1, 2)
 
     joints: list[Joint] = []
-    for i in range(num_joints):
+    for i in range(len(joint_names)):
         j = Joint(joint_names[i], tuple(joint_ranges[i]))
         j.range = (j.range[0], j.range[1])
         joints.append(j)
@@ -295,7 +303,7 @@ class MujocoArmController(ArmController):
         for joint in self.joints:
             # get the actual position of the joint from the mujoco model
             # and update the arm controller values
-            joint_actual_pos = self.data.joint(joint.name).qpos[0]
+            joint_actual_pos = self.data.joint(MUJOCO_SO100_PREFIX + joint.name).qpos[0]
             self.set_joint_actual_position(joint.name, joint_actual_pos)
 
     def set_positions(self):
@@ -303,7 +311,7 @@ class MujocoArmController(ArmController):
         Applies the set joint permissions to the mujoco model
         """
         for i, joint in enumerate(self.joints):
-            self.data.actuator(joint.name).ctrl = self.joint_set_positions[i]
+            self.data.actuator(MUJOCO_SO100_PREFIX + joint.name).ctrl = self.joint_set_positions[i]
 
 
 class So100ArmController(ArmController):
