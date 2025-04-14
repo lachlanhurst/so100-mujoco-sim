@@ -45,16 +45,16 @@ if __name__ == "__main__":
 
     # download the mujoco xml model
     download(
-        'https://github.com/google-deepmind/mujoco_menagerie/archive/refs/heads/main.zip',
-        'mujoco_menagerie-main',
+        'https://github.com/google-deepmind/mujoco_menagerie/archive/68ff0ee1198e993bd824084b9ccd1826d835ea9f.zip',
+        'mujoco_menagerie-68ff0ee1198e993bd824084b9ccd1826d835ea9f',
         'trs_so_arm100',
         os.path.join(pathlib.Path(__file__).parent.parent, "src/so100_mujoco_sim/xml")
     )
 
     # download the lerobot code
     download(
-        'https://github.com/huggingface/lerobot/archive/refs/heads/main.zip',
-        'lerobot-main',
+        'https://github.com/huggingface/lerobot/archive/5322417c0302b517b94d938e12b0e10405e6b649.zip',
+        'lerobot-5322417c0302b517b94d938e12b0e10405e6b649',
         'lerobot',
         os.path.join(pathlib.Path(__file__).parent.parent, "src/lerobot")
     )
