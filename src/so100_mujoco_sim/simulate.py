@@ -105,6 +105,7 @@ class Window(QMainWindow):
         self.th.update_controller_enabled_states.connect(self._update_controllers_enabled)
         self.th.update_primary_controller.connect(self._primary_controller_changed)
         self.th.update_ui_recorded_steps.connect(self._update_playback_recorded_steps)
+        self.th.warning.connect(self.show_warning_dialog)
 
         layout_right_side = QVBoxLayout()
         layout_right_side.setSpacing(8)

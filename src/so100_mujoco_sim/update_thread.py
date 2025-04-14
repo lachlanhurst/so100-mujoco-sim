@@ -20,6 +20,7 @@ class UpdateThread(QThread):
     update_ui_recorded_steps = Signal(int, int)
     update_controller_enabled_states = Signal()
     update_primary_controller = Signal(str)
+    warning = Signal(str, str)
 
     def __init__(self, model: mujoco.MjModel, data: mujoco.MjData, parent=None) -> None:
         super().__init__(parent)
@@ -154,8 +155,13 @@ class UpdateThread(QThread):
         if not self._do_connection:
             return
         self._do_connection = False
-        self.real_controller.connect(self._usb_port, self._calibration_folder)
-        self.real_controller.update()
+
+        try:
+            self.real_controller.connect(self._usb_port, self._calibration_folder)
+            self.real_controller.update()
+        except Exception as e:
+            self.warning.emit("Connection issue", f"Error connecting to real robot: {e}")
+            return
 
         # this updates the ui, but also raises change events that causes the mujoco
         # model to update
