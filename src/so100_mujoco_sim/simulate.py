@@ -180,8 +180,8 @@ class Window(QMainWindow):
         self.usb_port_edit = QLineEdit()
         self.usb_port_edit.setPlaceholderText("Enter USB port...")
         usb_port_layout.addWidget(self.usb_port_edit)
-        config_layout.addLayout(calibration_layout_v)
         config_layout.addLayout(usb_port_layout)
+        config_layout.addLayout(calibration_layout_v)
 
         config_group = QGroupBox("Config")
         config_group.setLayout(config_layout)
