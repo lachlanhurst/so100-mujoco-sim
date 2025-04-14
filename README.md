@@ -1,4 +1,7 @@
 # so100 MuJoCo Simulation User Interface
+
+![Real and simulated so100 side by side](./docs/so100_real_and_sim.gif)
+
 User interface to simulate and drive the so100(so-arm100) robot arm. It supports the following:
 - Control the arm (real and simulation) by independent joint angles in the user interface
 - Control the simulation by moving the real robot
@@ -6,6 +9,8 @@ User interface to simulate and drive the so100(so-arm100) robot arm. It supports
 - Playback the recorded joint angle on the arm (real and simulation)
 
 Ideally you have a so100 robot arm connected, but the application will still work fine without one.
+
+![Screenshot of user interface](./docs/screenshot_01.png)
 
 
 ## Dependencies
@@ -44,14 +49,14 @@ Run the simulation UI
 
     pixi run simulate
 
-If connecting to a real so100 enter the config details from the [above steps](#robot-setup). Once this is done you can click 'Connect' to connect to the robot. **The simulation should then update to match the position of the real so100, if it does not then STOP**, something isn't right attempting to move the robot via the application may cause the servos to move outside of the desired range.
+If connecting to a real so100 enter the config details from the [above steps](#robot-setup). Once this is done you can click 'Connect' to connect to the robot. **The simulation should then update to match the position of the real so100, if it does not then STOP**. Something isn't right attempting to move the robot via the application may cause the servos to move outside of the desired range.
 
 
 ## Running tests
 
 Unit tests can be run with the following command
 
-   pixi run tests
+    pixi run tests
 
 
 # Acknowledgements
