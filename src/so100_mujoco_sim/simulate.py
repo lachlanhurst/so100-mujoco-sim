@@ -197,9 +197,9 @@ class Window(QMainWindow):
             self.joint_widgets.append(widget)
         control_layout.addStretch()
 
-        reset_button = QPushButton("Reset")
-        reset_button.clicked.connect(self.reset_simulation)
-        control_layout.addWidget(reset_button)
+        # reset_button = QPushButton("Reset")
+        # reset_button.clicked.connect(self.reset_simulation)
+        # control_layout.addWidget(reset_button)
 
         robot_control_group = QGroupBox("Robot Control")
         robot_control_group.setLayout(control_layout)
