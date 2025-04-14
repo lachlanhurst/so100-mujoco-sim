@@ -41,7 +41,7 @@ Install dependencies
 
     pixi install
 
-Download the so100 MuJoCo xml files from the [MuJoCo Menagerie](https://github.com/google-deepmind/mujoco_menagerie). This may take a little while as it downloads all models, then extracts ony the so100.
+The following command will download LeRobot code and the so100 MuJoCo model files from the [MuJoCo Menagerie](https://github.com/google-deepmind/mujoco_menagerie) repo. This may take a little while as it downloads all models, then extracts only those for the so100.
 
     pixi run download
 
