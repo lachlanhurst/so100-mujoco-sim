@@ -38,7 +38,7 @@ def joints_from_model(model: mujoco.MjModel) -> list[Joint]:
         name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_JOINT, i)
         # there are other  non-so100 joints in the mujoco model
         # like the block free joints
-        if name.startswith(MUJOCO_SO100_PREFIX):
+        if name.startswith(MUJOCO_SO100_PREFIX) and 'end_point_joint' not in name:
             name = name[len(MUJOCO_SO100_PREFIX):]
             joint_names.append(name)
 
@@ -70,6 +70,8 @@ class ArmController:
         self._primary = False
         self._name = "Base"
         self._controllable = False
+
+        self.count = 0
 
     @property
     def primary(self) -> bool:
@@ -135,6 +137,11 @@ class ArmController:
             max(joint.range[0], min(position, joint.range[1]))
             for joint, position in zip(self.joints, positions)
         ]
+
+        
+        if self.count % 1000 == 0:
+            print(f"{self.joint_set_positions}")
+        self.count += 1
 
     def reset(self):
         self.joint_set_positions = [0.0] * len(self.joints)

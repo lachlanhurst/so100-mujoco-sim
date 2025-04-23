@@ -6,6 +6,7 @@ import numpy as np
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
+from PIL import Image
 
 format = QSurfaceFormat()
 format.setDepthBufferSize(24)
@@ -36,6 +37,9 @@ class Viewport(QOpenGLWindow):
         self.height = 0
         self.scale = 1.0
         self.__last_pos = None
+
+        self.image_folder = '/Users/lachlan/not_work/so100/repo/cube-train-detect/data_sim/captures'
+        self.take_screenshot = False
 
         self.runtime = deque(maxlen=1000)
         self.timer = QTimer()
@@ -77,11 +81,27 @@ class Viewport(QOpenGLWindow):
         """
         self.scale = scaleFactor
 
+    def setImageFolder(self, folder: str) -> None:
+        """ Sets the image folder to save images to. """
+        self.image_folder = folder
+
+    def takeScreenshot(self) -> None:
+        """ Sets the take_screenshot flag to True. """
+        self.take_screenshot = True
+
     def paintGL(self) -> None:
         t = time.time()
         mujoco.mjv_updateScene(self.model, self.data, self.opt, None, self.cam, mujoco.mjtCatBit.mjCAT_ALL, self.scn)
         viewport = mujoco.MjrRect(0, 0, int(self.width * self.scale), int(self.height * self.scale))
-        mujoco.mjr_render(viewport, self.scn, self.con)
+        r = mujoco.mjr_render(viewport, self.scn, self.con)
+        if self.image_folder is not None and self.take_screenshot:
+            image = np.zeros((viewport.height, viewport.width, 3), dtype=np.uint8)
+            mujoco.mjr_readPixels(image, None, viewport, self.con)
+            image = np.flipud(image)  # Flip the image vertically
+            filename = f"{self.image_folder}/frame_{int(time.time() * 1000)}.png"
+            print(f"Saving screenshot to {filename}")
+            Image.fromarray(image).save(filename)
+            self.take_screenshot = False
 
         self.runtime.append(time.time()-t)
         self.updateRuntime.emit(np.average(self.runtime))

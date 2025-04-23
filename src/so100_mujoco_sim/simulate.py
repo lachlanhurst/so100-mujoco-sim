@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QApplication, QComboBox, QFileDialog, QGroupBox,
     QHBoxLayout, QLabel, QLayout, QLineEdit,
     QMainWindow, QMessageBox, QPushButton,
-    QSlider, QVBoxLayout, QWidget
+    QSlider, QVBoxLayout, QWidget, QSizePolicy
 )
 
 from so100_mujoco_sim.arm_control import (
@@ -86,7 +86,8 @@ class Window(QMainWindow):
         self.model = mujoco.MjModel.from_xml_path(str(pathlib.Path(__file__).parent.joinpath('xml/sim_scene.xml')))
         self.joints = joints_from_model(self.model)
         self.data = mujoco.MjData(self.model)
-        self.cam = self.create_free_camera()
+        # self.cam = self.create_free_camera()
+        self.cam = self.get_end_camera()
         self.opt = mujoco.MjvOption()
         self.scn = mujoco.MjvScene(self.model, maxgeom=10000)
         self.scn.flags[mujoco.mjtRndFlag.mjRND_SHADOW] = True
@@ -114,7 +115,12 @@ class Window(QMainWindow):
         layout_robot_controls.addLayout(self.create_right_side_control())
         layout_right_side.addLayout(layout_robot_controls)
         layout_right_side.setContentsMargins(8,8,8,8)
-        layout.addWidget(QWidget.createWindowContainer(self.viewport))
+        vw = QWidget.createWindowContainer(self.viewport)
+        vw.setMinimumSize(QSize(1080/2, 1920/2))
+        vw.setMaximumSize(QSize(1080/2, 1920/2))
+        vw.setFixedSize(QSize(1080/2, 1920/2))
+        vw.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        layout.addWidget(vw)
         layout.addLayout(layout_right_side)
         layout.setContentsMargins(0,0,0,0)
         layout.setStretch(0,1)
@@ -195,7 +201,7 @@ class Window(QMainWindow):
             widget.joint_position_changed.connect(self._joint_position_changed)
             control_layout.addWidget(widget)
             self.joint_widgets.append(widget)
-        control_layout.addStretch()
+        # control_layout.addStretch()
 
         # reset_button = QPushButton("Reset")
         # reset_button.clicked.connect(self.reset_simulation)
@@ -289,14 +295,15 @@ class Window(QMainWindow):
         return group
 
     def _save_playback_file(self):
-        file_path = self.playback_file_edit.text()
-        if file_path:
-            self.th.save_playback_file(file_path)
+        self.viewport.take_screenshot = True
+        # file_path = self.playback_file_edit.text()
+        # if file_path:
+        #     self.th.save_playback_file(file_path)
 
-            self.statusBar().showMessage(
-                f"Playback file '{os.path.basename(file_path)}' saved successfully.",
-                2000
-            )
+        #     self.statusBar().showMessage(
+        #         f"Playback file '{os.path.basename(file_path)}' saved successfully.",
+        #         2000
+        #     )
 
     def _load_playback_file(self):
         file_path = self.playback_file_edit.text()
@@ -375,6 +382,7 @@ class Window(QMainWindow):
         layout.addLayout(controller_layout)
         layout.addLayout(robot_control_layout)
         layout.addWidget(self._create_playback_and_record_group())
+        layout.addStretch()
         return layout
 
     def _update_controllers_enabled(self):
@@ -474,6 +482,12 @@ class Window(QMainWindow):
         cam.distance = self.model.stat.extent * 1.5
         cam.elevation = -25
         cam.azimuth = 45
+        return cam
+
+    def get_end_camera(self):
+        cam = mujoco.MjvCamera()
+        cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
+        cam.fixedcamid = 0
         return cam
 
     def reset_simulation(self):
